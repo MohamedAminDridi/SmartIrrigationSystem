@@ -1,0 +1,51 @@
+# ───────────────────────────── Dependencies ─────────────────────────────
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+
+# ───────────────────────────── Environment / secrets ────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ───────────────────────────── Build output ─────────────────────────────
+dist/
+build/
+out/
+.vite/
+*.local
+
+# ───────────────────────────── Backend runtime ──────────────────────────
+# smart-irrigation-api
+smart-irrigation-api/logs/
+smart-irrigation-api/uploads/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ───────────────────────────── Deploy / hosting ─────────────────────────
+.netlify/
+.vercel/
+
+# ───────────────────────────── Testing / coverage ───────────────────────
+coverage/
+.nyc_output/
+
+# ───────────────────────────── Editor / OS ──────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ───────────────────────────── Misc ─────────────────────────────────────
+*.tmp
+*.bak
+.cache/
