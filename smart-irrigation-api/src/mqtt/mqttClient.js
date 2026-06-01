@@ -52,19 +52,41 @@ const initMQTT = () => {
 
       } else if (category === 'nodes' && msgType === 'status') {
         const Node = require('../models/Node.model');
+
+        // Determine online/offline — alive packets have type='alive' but no status field
+        const statusVal = payload.status
+          ?? (payload.type === 'alive' || payload.online === true ? 'online' : 'unknown');
+
+        // Accept both naming conventions from the node firmware
+        const valveState = payload.valve_state ?? payload.valve ?? null;
+        const pumpState  = payload.pump_state  ?? payload.pump  ?? null;
+        const valvePct   = payload.valve_pct   ?? null;
+
         await Node.findOneAndUpdate(
           { device_id: deviceId },
           {
             $set: {
-              status:      payload.status ?? (payload.online ? 'online' : 'offline'),
-              valve_state: payload.valve  ?? 'unknown',
-              pump_state:  payload.pump   ?? 'unknown',
-              last_seen:   new Date(),
-              ...(payload.fw ? { firmware_version: payload.fw } : {}),
+              status:    statusVal,
+              last_seen: new Date(),
+              ...(valveState != null ? { valve_state: valveState } : {}),
+              ...(valvePct   != null ? { valve_pct:   valvePct   } : {}),
+              ...(pumpState  != null ? { pump_state:  pumpState  } : {}),
+              ...(payload.fw         ? { firmware_version: payload.fw } : {}),
             },
           }
         );
-        emitToFarm(farmId, 'node:status', { device_id: deviceId, ...payload });
+
+        // Spread full payload so the frontend receives all fields (valve_state, pump_state, fw, …)
+        emitToFarm(farmId, 'node:status', {
+          device_id: deviceId,
+          status:    statusVal,
+          valve:     valveState,
+          valve_pct: valvePct,
+          pump:      pumpState,
+          fw:        payload.fw ?? null,
+          ts:        new Date(),
+          ...payload,   // keep any extra fields the gateway appends (lora_rssi, snr, …)
+        });
 
       } else if (category === 'nodes' && msgType === 'alerts') {
         emitToFarm(farmId, 'alert:new', { device_id: deviceId, ...payload });

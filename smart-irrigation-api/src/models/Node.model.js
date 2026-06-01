@@ -18,6 +18,7 @@ const nodeSchema = new mongoose.Schema({
   status:              { type: String, enum: ['online','offline','unknown'], default: 'unknown' },
   last_seen:           { type: Date, default: null },
   valve_state:         { type: String, enum: ['open','closed','unknown'], default: 'unknown' },
+  valve_pct:           { type: Number, default: 0, min: 0, max: 100 },  // servo position 0–100% (100% = 90°)
   pump_state:          { type: String, enum: ['on','off','unknown'], default: 'unknown' },
 }, { timestamps: true });
 

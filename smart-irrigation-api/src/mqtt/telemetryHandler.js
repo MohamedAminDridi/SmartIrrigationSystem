@@ -26,11 +26,20 @@ module.exports = async function handleTelemetry(farmId, nodeDeviceId, payload) {
     const bat  = payload.bat  ?? null;
     const rssi = payload.lora_rssi ?? payload.rssi ?? null;
 
-    // Update node live state
+    // Valve / pump state — node sends both short (valve/pump) and long (valve_state/pump_state) forms
+    const valveState = payload.valve_state ?? payload.valve ?? null;
+    const valvePct   = payload.valve_pct   ?? null;
+    const pumpState  = payload.pump_state  ?? payload.pump  ?? null;
+
+    // Update node live state (including valve/pump so the DB is always accurate)
     await Node.findByIdAndUpdate(node._id, {
       status:      'online',
       last_seen:   new Date(),
       battery_pct: bat,
+      ...(valveState != null  ? { valve_state: valveState } : {}),
+      ...(valvePct   != null  ? { valve_pct:   valvePct   } : {}),
+      ...(pumpState  != null  ? { pump_state:  pumpState  } : {}),
+      ...(payload.fw          ? { firmware_version: payload.fw } : {}),
     });
 
     // Save to time-series collection — match schema exactly:
@@ -51,7 +60,7 @@ module.exports = async function handleTelemetry(farmId, nodeDeviceId, payload) {
       rssi,
     });
 
-    // Push real-time to dashboard
+    // Push real-time sensor data to dashboard
     emitToFarm(farmId, 'sensor:data', {
       nodeId:            node._id,
       deviceId:          node.device_id,
@@ -65,7 +74,21 @@ module.exports = async function handleTelemetry(farmId, nodeDeviceId, payload) {
       ts:  new Date(),
     });
 
-    logger.info(`📊 [${nodeDeviceId}] soil=${soil}% temp=${temp}°C hum=${hum}% bat=${bat}% rssi=${rssi}`);
+    // Push valve/pump state update instantly so the 3D twin and dashboards
+    // reflect the real device state without waiting for a separate status packet.
+    if (valveState != null || pumpState != null) {
+      emitToFarm(farmId, 'node:status', {
+        device_id:  node.device_id,
+        status:     'online',
+        valve:      valveState,
+        valve_pct:  valvePct,
+        pump:       pumpState,
+        fw:         payload.fw ?? null,
+        ts:         new Date(),
+      });
+    }
+
+    logger.info(`📊 [${nodeDeviceId}] soil=${soil}% temp=${temp}°C hum=${hum}% bat=${bat}% rssi=${rssi} valve=${valveState ?? '?'} pump=${pumpState ?? '?'}`);
 
     // ── Battery low alert (< 30%) — 30-minute cooldown ───────────────
     if (bat !== null && bat < 30) {

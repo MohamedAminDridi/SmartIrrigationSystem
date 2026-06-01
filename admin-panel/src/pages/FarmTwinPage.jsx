@@ -154,7 +154,6 @@ function NodeMarker({ deviceId, gwColor, selected, editMode, onSelect, onBeginDr
   const orbRef   = useRef();
   const alertRef = useRef();
   const sprayRef = useRef();
-  const pumpRef  = useRef();
   const [hovered, setHovered] = useState(false);
   const target = useMemo(() => new THREE.Color(), []);
 
@@ -229,11 +228,6 @@ function NodeMarker({ deviceId, gwColor, selected, editMode, onSelect, onBeginDr
         }
         sprayGeo.attributes.position.needsUpdate = true;
       }
-    }
-    // pump impeller spins whenever watering (valve open implies pump running)
-    if (pumpRef.current) {
-      pumpRef.current.visible = watering;
-      if (watering) pumpRef.current.rotation.y += dt * 6;
     }
     // red alert halo
     if (alertRef.current) {
@@ -320,16 +314,6 @@ function NodeMarker({ deviceId, gwColor, selected, editMode, onSelect, onBeginDr
         <pointsMaterial size={0.14} color="#7dd3fc" transparent opacity={0.9} depthWrite={false} sizeAttenuation />
       </points>
 
-      {/* pump impeller (spins while running) */}
-      <group ref={pumpRef} position={[half * 0.55, 0.42, half * 0.55]} visible={false}>
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.18, 0.05, 8, 20]} />
-          <meshStandardMaterial color="#0284c7" />
-        </mesh>
-        <mesh><boxGeometry args={[0.36, 0.05, 0.06]} /><meshStandardMaterial color="#0ea5e9" /></mesh>
-        <mesh><boxGeometry args={[0.06, 0.05, 0.36]} /><meshStandardMaterial color="#0ea5e9" /></mesh>
-      </group>
-
       {/* sensor pole + head */}
       <mesh position={[0, 0.78, 0]} castShadow>
         <cylinderGeometry args={[0.05, 0.05, 1.2, 12]} />
@@ -356,16 +340,44 @@ function NodeMarker({ deviceId, gwColor, selected, editMode, onSelect, onBeginDr
   );
 }
 
+/* ---- live pump badge (React component so it can subscribe to the store) ---- */
+function PumpStatusBadge({ clusterNodeIds }) {
+  const byId = useTwinStore((s) => s.byId);
+  const on = clusterNodeIds.some((nid) => {
+    const d = byId[nid];
+    return (d?.pump ?? d?.pump_state) === 'on';
+  });
+  return (
+    <div style={{
+      fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
+      padding: '2px 7px', borderRadius: '5px', whiteSpace: 'nowrap',
+      background: on ? 'rgba(8,47,73,0.92)' : 'rgba(15,23,42,0.80)',
+      color:      on ? '#22d3ee' : '#64748b',
+      border:     `1px solid ${on ? 'rgba(14,165,233,0.5)' : 'rgba(71,85,105,0.35)'}`,
+      boxShadow:  on ? '0 0 10px rgba(34,211,238,0.35)' : 'none',
+      transition: 'all 0.3s ease',
+    }}>
+      {on ? '⚙ PUMP ● ON' : '⚙ PUMP ○ OFF'}
+    </div>
+  );
+}
+
 /* ----------------------------------------------------------- gateway object */
-function GatewayObject({ deviceId, color, editMode, onSelect, onBeginDrag }) {
+// clusterNodeIds: device_ids of nodes that relay through this gateway —
+// used to determine whether the shared pump should be shown as running.
+function GatewayObject({ deviceId, color, editMode, onSelect, onBeginDrag, clusterNodeIds = [] }) {
   const dev = useTwinStore((s) => s.byId[deviceId]) || {};
   const pos = useTwinStore((s) => s.positions[deviceId]) || [0, 0, 0];
-  const ringRef = useRef();
+  const ringRef     = useRef();
+  const impRef      = useRef();   // pump impeller (spins when running)
+  const pumpLedRef  = useRef();   // status LED on pump motor
+  const pumpBodyRef = useRef();   // pump volute — glows when running
   const [hovered, setHovered] = useState(false);
 
-  useFrame(() => {
+  useFrame((_, dt) => {
+    // ── gateway signal ring ────────────────────────────────────────
     if (ringRef.current) {
-      const online = dev.status === 'online';
+      const online = useTwinStore.getState().byId[deviceId]?.status === 'online';
       ringRef.current.visible = online;
       if (online) {
         const t = (performance.now() * 0.0009) % 1;
@@ -373,6 +385,27 @@ function GatewayObject({ deviceId, color, editMode, onSelect, onBeginDrag }) {
         ringRef.current.scale.set(s, s, s);
         ringRef.current.material.opacity = 0.5 * (1 - t);
       }
+    }
+    // ── pump — on when ANY cluster node has pump running ──────────
+    const byId = useTwinStore.getState().byId;
+    const pumpOn = clusterNodeIds.some((nid) => {
+      const d = byId[nid];
+      return (d?.pump ?? d?.pump_state) === 'on';
+    });
+    const now = performance.now();
+    if (impRef.current) {
+      if (pumpOn) impRef.current.rotation.x += dt * 9;
+    }
+    if (pumpLedRef.current) {
+      pumpLedRef.current.material.emissiveIntensity = pumpOn
+        ? 0.6 + Math.sin(now * 0.007) * 0.35
+        : 0.08;
+      pumpLedRef.current.material.color.set(pumpOn ? '#22d3ee' : '#475569');
+      pumpLedRef.current.material.emissive.set(pumpOn ? '#22d3ee' : '#000');
+    }
+    if (pumpBodyRef.current) {
+      pumpBodyRef.current.material.emissive.set(pumpOn ? '#0369a1' : '#000');
+      pumpBodyRef.current.material.emissiveIntensity = pumpOn ? 0.18 : 0;
     }
   });
 
@@ -385,12 +418,13 @@ function GatewayObject({ deviceId, color, editMode, onSelect, onBeginDrag }) {
       onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = editMode ? 'grab' : 'pointer'; }}
       onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
     >
-      {/* coloured pad marking this gateway's cluster */}
+      {/* coloured pad */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]} receiveShadow>
         <circleGeometry args={[2.4, 56]} />
         <meshStandardMaterial color={color} transparent opacity={hovered ? 0.34 : 0.2} />
       </mesh>
 
+      {/* gateway base + enclosure */}
       <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
         <boxGeometry args={[1.6, 0.3, 1.2]} />
         <meshStandardMaterial color="#334155" />
@@ -399,6 +433,7 @@ function GatewayObject({ deviceId, color, editMode, onSelect, onBeginDrag }) {
         <boxGeometry args={[0.7, 0.9, 0.5]} />
         <meshStandardMaterial color={online ? color : '#64748b'} emissive={online ? color : '#000'} emissiveIntensity={online ? 0.4 : 0} />
       </mesh>
+      {/* antenna */}
       <mesh position={[0, 1.7, 0]} castShadow>
         <cylinderGeometry args={[0.03, 0.03, 1.0, 8]} />
         <meshStandardMaterial color="#cbd5e1" metalness={0.5} />
@@ -408,10 +443,82 @@ function GatewayObject({ deviceId, color, editMode, onSelect, onBeginDrag }) {
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1} />
       </mesh>
 
+      {/* signal pulse ring */}
       <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]} visible={false}>
         <ringGeometry args={[0.9, 1.05, 48]} />
         <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
       </mesh>
+
+      {/* ── PUMP MODEL (centrifugal pump beside gateway) ──────────── */}
+      {/* Positioned at [-2.4, 0, 0] — to the left of the gateway pad */}
+      <group position={[-2.4, 0, 0.1]}>
+        {/* base plate */}
+        <mesh position={[0, 0.05, 0]} receiveShadow>
+          <boxGeometry args={[1.5, 0.1, 0.95]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.4} roughness={0.8} />
+        </mesh>
+        {/* pump volute (housing) */}
+        <mesh ref={pumpBodyRef} position={[-0.28, 0.42, 0]} castShadow>
+          <boxGeometry args={[0.72, 0.6, 0.72]} />
+          <meshStandardMaterial color="#1e3a5f" metalness={0.55} roughness={0.38} />
+        </mesh>
+        {/* volute front face (darker inset) */}
+        <mesh position={[-0.28, 0.42, 0.37]}>
+          <boxGeometry args={[0.6, 0.48, 0.04]} />
+          <meshStandardMaterial color="#0c2340" metalness={0.7} roughness={0.3} />
+        </mesh>
+        {/* impeller (spins on X axis — shaft goes into motor) */}
+        <group ref={impRef} position={[-0.28, 0.42, 0.28]}>
+          <mesh><boxGeometry args={[0.04, 0.38, 0.04]} /><meshStandardMaterial color="#38bdf8" /></mesh>
+          <mesh><boxGeometry args={[0.38, 0.04, 0.04]} /><meshStandardMaterial color="#38bdf8" /></mesh>
+          <mesh rotation={[0, 0, Math.PI / 4]}><boxGeometry args={[0.04, 0.38, 0.04]} /><meshStandardMaterial color="#7dd3fc" /></mesh>
+          <mesh rotation={[0, 0, Math.PI / 4]}><boxGeometry args={[0.38, 0.04, 0.04]} /><meshStandardMaterial color="#7dd3fc" /></mesh>
+          <mesh>
+            <torusGeometry args={[0.19, 0.035, 8, 24]} />
+            <meshStandardMaterial color="#0ea5e9" emissive="#0ea5e9" emissiveIntensity={0.25} />
+          </mesh>
+        </group>
+        {/* motor cylinder */}
+        <mesh position={[0.4, 0.42, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[0.24, 0.24, 0.82, 20]} />
+          <meshStandardMaterial color="#1d4ed8" metalness={0.55} roughness={0.35} />
+        </mesh>
+        {/* motor cooling fins */}
+        {[0.1, 0.28, 0.46, 0.64].map((x, i) => (
+          <mesh key={i} position={[x + 0.01, 0.42, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.28, 0.28, 0.04, 20]} />
+            <meshStandardMaterial color="#1e40af" metalness={0.5} roughness={0.4} />
+          </mesh>
+        ))}
+        {/* motor end cap + status LED */}
+        <mesh position={[0.84, 0.42, 0]}>
+          <cylinderGeometry args={[0.24, 0.24, 0.06, 20]} rotation={[0, 0, Math.PI / 2]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.6} />
+        </mesh>
+        <mesh ref={pumpLedRef} position={[0.88, 0.55, 0]}>
+          <sphereGeometry args={[0.07, 10, 10]} />
+          <meshStandardMaterial color="#475569" emissive="#000" emissiveIntensity={0.08} />
+        </mesh>
+        {/* inlet pipe — from bottom of volute going down */}
+        <mesh position={[-0.28, 0.13, -0.2]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.085, 0.085, 0.38, 12]} />
+          <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.5} />
+        </mesh>
+        {/* outlet pipe — rises out of top of volute */}
+        <mesh position={[-0.05, 0.85, 0]}>
+          <cylinderGeometry args={[0.075, 0.075, 0.5, 12]} />
+          <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.5} />
+        </mesh>
+        {/* outlet elbow cap */}
+        <mesh position={[-0.05, 1.12, 0]}>
+          <sphereGeometry args={[0.085, 10, 10]} />
+          <meshStandardMaterial color="#475569" metalness={0.5} />
+        </mesh>
+        {/* live pump status badge */}
+        <Html position={[0, 1.45, 0]} center distanceFactor={13} className="pointer-events-none select-none">
+          <PumpStatusBadge clusterNodeIds={clusterNodeIds} />
+        </Html>
+      </group>
 
       <Html position={[0, 2.6, 0]} center distanceFactor={13} className="pointer-events-none select-none">
         <div className="px-2 py-0.5 rounded-md text-white shadow text-[11px] leading-tight whitespace-nowrap" style={{ background: color }}>
@@ -561,7 +668,11 @@ function Scene({ scene, editMode, onSelect, onCommit }) {
       ))}
 
       {gwIds.map((id) => (
-        <GatewayObject key={id} deviceId={id} color={gwColor[id]} editMode={editMode} onSelect={onSelect} onBeginDrag={beginDrag} />
+        <GatewayObject
+          key={id} deviceId={id} color={gwColor[id]} editMode={editMode}
+          onSelect={onSelect} onBeginDrag={beginDrag}
+          clusterNodeIds={nodeIds.filter((nid) => scene.nodeGw[nid] === id)}
+        />
       ))}
 
       <OrbitControls ref={controlsRef} enableDamping target={[0, 1, 0]} maxPolarAngle={Math.PI / 2.2} minDistance={8} maxDistance={100} />
@@ -591,9 +702,12 @@ function Metric({ icon, label, value, accent }) {
 
 function DetailPanel({ canControl, onValve, onClose }) {
   const sel = useTwinStore((s) => (s.selectedId ? s.byId[s.selectedId] : null));
+  const [asking, setAsking] = useState(false);
+  const [pct, setPct] = useState(100);
   if (!sel) return null;
   const status    = sel.status || 'unknown';
   const valveOpen = (sel.valve ?? sel.valve_state) === 'open';
+  const valvePct  = sel.valve_pct;
   const pumpOn    = (sel.pump ?? sel.pump_state) === 'on';
   const dot = status === 'online' ? 'bg-emerald-500' : status === 'offline' ? 'bg-rose-500' : 'bg-slate-400';
   const pill = status === 'online'
@@ -631,7 +745,9 @@ function DetailPanel({ canControl, onValve, onClose }) {
       <div className="px-3 pb-3 grid grid-cols-3 gap-2 text-center">
         <div className="rounded-xl bg-slate-50/80 border border-slate-100 py-1.5">
           <div className="text-[10px] uppercase tracking-wide text-slate-400">Valve</div>
-          <div className={`text-xs font-semibold ${valveOpen ? 'text-sky-600' : 'text-slate-500'}`}>{valveOpen ? 'Open' : 'Closed'}</div>
+          <div className={`text-xs font-semibold ${valveOpen ? 'text-sky-600' : 'text-slate-500'}`}>
+            {valveOpen ? (valvePct != null ? `Open ${valvePct}%` : 'Open') : 'Closed'}
+          </div>
         </div>
         <div className="rounded-xl bg-slate-50/80 border border-slate-100 py-1.5">
           <div className="text-[10px] uppercase tracking-wide text-slate-400">Pump</div>
@@ -645,15 +761,57 @@ function DetailPanel({ canControl, onValve, onClose }) {
 
       {canControl && (
         <div className="px-3 pb-3">
-          <button
-            onClick={() => onValve(!valveOpen)}
-            className={`w-full inline-flex items-center justify-center gap-2 text-sm font-semibold px-3 py-2.5 rounded-xl text-white shadow-lg transition-all active:scale-[.98] ${
-              valveOpen
-                ? 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 shadow-slate-500/20'
-                : 'bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 shadow-sky-500/30'}`}
-          >
-            {valveOpen ? '■ Close valve · stop pump' : '💧 Open valve · start pump'}
-          </button>
+          {valveOpen ? (
+            <button
+              onClick={() => onValve(false)}
+              className="w-full inline-flex items-center justify-center gap-2 text-sm font-semibold px-3 py-2.5 rounded-xl text-white shadow-lg transition-all active:scale-[.98] bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 shadow-slate-500/20"
+            >
+              ■ Close valve · stop pump
+            </button>
+          ) : asking ? (
+            <div className="rounded-xl bg-sky-50/70 border border-sky-100 p-3 animate-[fadeIn_.15s_ease-out]">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-sky-700">Open how much?</span>
+                <button onClick={() => setAsking(false)} className="text-slate-300 hover:text-slate-600 text-base leading-none">×</button>
+              </div>
+              <div className="text-center mb-1">
+                <span className="text-3xl font-bold tabular-nums text-sky-700">{pct}</span>
+                <span className="text-sm font-semibold text-sky-500">%</span>
+                <span className="ml-2 text-[11px] text-slate-400">≈ {Math.round((pct / 100) * 90)}° servo</span>
+              </div>
+              <input
+                type="range" min={0} max={100} step={5} value={pct}
+                onChange={(e) => setPct(parseInt(e.target.value, 10))}
+                className="w-full accent-sky-500 mb-2"
+              />
+              <div className="flex gap-1.5 mb-2.5">
+                {[25, 50, 75, 100].map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPct(p)}
+                    className={`flex-1 text-[11px] font-semibold py-1 rounded-lg border transition-colors ${
+                      pct === p ? 'bg-sky-500 text-white border-sky-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                  >
+                    {p}%
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => { onValve(true, pct); setAsking(false); }}
+                disabled={pct === 0}
+                className="w-full inline-flex items-center justify-center gap-2 text-sm font-semibold px-3 py-2.5 rounded-xl text-white shadow-lg transition-all active:scale-[.98] bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 shadow-sky-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                💧 Open valve to {pct}% · start pump
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setPct(100); setAsking(true); }}
+              className="w-full inline-flex items-center justify-center gap-2 text-sm font-semibold px-3 py-2.5 rounded-xl text-white shadow-lg transition-all active:scale-[.98] bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 shadow-sky-500/30"
+            >
+              💧 Open valve · start pump
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -895,20 +1053,40 @@ export default function FarmTwinPage() {
       .catch((e) => toast(`Save failed: ${e.response?.data?.message || e.message}`, 3000));
   }, [farmId, toast]);
 
-  // Open/close the selected node's valve. Opening a valve auto-starts the pump
-  // (and closing stops it). We patch the store optimistically so the 3D plot
-  // reacts instantly, then fire both commands; the device's MQTT status echo
-  // reconciles the real state later.
-  const setValve = useCallback((open) => {
+  // Open/close the selected node's valve + servo (0–100% → 0–90°).
+  // Smart pump logic: opening always starts the pump (firmware is idempotent —
+  // it ignores pump_start if already running). Closing ONLY stops the pump when
+  // no other node in the farm still has a valve open — this prevents the shared
+  // pump from being cut while other sections are still irrigating.
+  const setValve = useCallback((open, percent = 100) => {
     const id = selectedId;
     const meta = id ? metaRef.current[id] : null;
     if (!meta || meta.type !== 'node') return;
-    apply(id, open ? { valve: 'open', pump: 'on' } : { valve: 'closed', pump: 'off' });
-    api.post(`/nodes/${meta._id}/${open ? 'valve/open' : 'valve/close'}`)
+    const pct = Math.max(0, Math.min(100, Math.round(percent)));
+    apply(id, open ? { valve: 'open', valve_pct: pct, pump: 'on' } : { valve: 'closed', valve_pct: 0, pump: 'off' });
+
+    // Send valve command (percent in body → forwarded as MQTT payload to device)
+    api.post(`/nodes/${meta._id}/${open ? 'valve/open' : 'valve/close'}`, open ? { percent: pct } : {})
       .catch((e) => toast(`Valve failed: ${e.response?.data?.message || e.message}`, 3000));
-    api.post(`/nodes/${meta._id}/${open ? 'pump/start' : 'pump/stop'}`)
-      .then(() => toast(open ? 'Valve opened · pump started' : 'Valve closed · pump stopped'))
-      .catch((e) => toast(`Pump failed: ${e.response?.data?.message || e.message}`, 3000));
+
+    if (open) {
+      // Firmware is idempotent: if pump relay is already ON it won't re-trigger
+      api.post(`/nodes/${meta._id}/pump/start`)
+        .then(() => toast(`Valve opened ${pct}% · pump started`))
+        .catch((e) => toast(`Pump failed: ${e.response?.data?.message || e.message}`, 3000));
+    } else {
+      // Check if any other node still has an open valve before killing the pump
+      const byId = useTwinStore.getState().byId;
+      const otherNodes = Object.keys(metaRef.current).filter((k) => metaRef.current[k].type === 'node' && k !== id);
+      const anyOpen = otherNodes.some((nid) => (byId[nid]?.valve ?? byId[nid]?.valve_state) === 'open');
+      if (anyOpen) {
+        toast('Valve closed · pump still running (other sections open)', 2500);
+      } else {
+        api.post(`/nodes/${meta._id}/pump/stop`)
+          .then(() => toast('Valve closed · pump stopped'))
+          .catch((e) => toast(`Pump failed: ${e.response?.data?.message || e.message}`, 3000));
+      }
+    }
   }, [selectedId, apply, toast]);
 
   // Reset this farm's layout + customization back to defaults (and clear server twins).
@@ -1066,7 +1244,7 @@ export default function FarmTwinPage() {
         {!editMode && <AlertsPanel alerts={alerts} onJump={select} />}
 
         {showCustomize && <CustomizePanel deviceId={selectedId} onSave={commitTwin} onClose={() => select(null)} />}
-        {!editMode && <DetailPanel canControl={selMeta?.type === 'node'} onValve={setValve} onClose={() => select(null)} />}
+        {!editMode && <DetailPanel key={selectedId} canControl={selMeta?.type === 'node'} onValve={setValve} onClose={() => select(null)} />}
       </div>
     </div>
   );

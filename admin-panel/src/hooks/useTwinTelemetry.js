@@ -16,11 +16,19 @@ export function useTwinTelemetry(farmId) {
       bat:    d.battery_pct,
       rssi:   d.rssi,
       status: 'online',
+      // Telemetry handler now co-emits valve/pump when present in the packet
+      ...(d.valve_state != null || d.valve != null
+        ? { valve: d.valve_state ?? d.valve, valve_pct: d.valve_pct ?? null }
+        : {}),
+      ...(d.pump_state != null || d.pump != null
+        ? { pump: d.pump_state ?? d.pump }
+        : {}),
     }),
     'node:status': (d) => apply(d.device_id ?? d.deviceId, {
       status: d.status,
       valve:  d.valve ?? d.valve_state,
       pump:   d.pump  ?? d.pump_state,
+      ...(d.valve_pct != null ? { valve_pct: d.valve_pct } : {}),
       ...(d.fw ? { firmware_version: d.fw } : {}),
     }),
     'gateway:status': (d) => apply(d.device_id, {
