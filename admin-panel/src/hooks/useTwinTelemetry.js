@@ -7,8 +7,12 @@ import { useTwinStore } from '../store/twinStore';
 // (auth, room join/leave, reconnection) so there's a single socket convention.
 export function useTwinTelemetry(farmId) {
   const apply = useTwinStore((s) => s.apply);
+  const setWeather = useTwinStore((s) => s.setWeather);
 
   const handlers = useMemo(() => ({
+    // Live weather broadcast (Open-Meteo → backend → Socket.IO → 3D scene).
+    // Skip while a manual demo override is active so it isn't overwritten.
+    'weather:update': (w) => { if (!useTwinStore.getState().weatherLocked) setWeather(w); },
     'sensor:data': (d) => apply(d.deviceId, {
       soil:   d.soil_moisture_pct,
       temp:   d.temperature_c,
@@ -39,7 +43,7 @@ export function useTwinTelemetry(farmId) {
     }),
     connect:    () => useTwinStore.getState().setLive(true),
     disconnect: () => useTwinStore.getState().setLive(false),
-  }), [apply]);
+  }), [apply, setWeather]);
 
   return useSocket(farmId, handlers);
 }

@@ -36,6 +36,12 @@ exports.initSocket = (server) => {
       socket.join(room);
       console.log(`🔍 [SOCKET] ${socket.id} joined room "${room}"`);
       console.log(`🔍 [SOCKET] all rooms:`, [...socket.rooms]);
+      // Send the last-known weather immediately so the scene isn't blank until
+      // the next 15-min broadcast (lazy require avoids a circular dependency).
+      try {
+        const cached = require('../services/weather.service').getCached(farmId);
+        if (cached) socket.emit('weather:update', cached);
+      } catch { /* weather service not ready */ }
     });
 
     socket.on('leave:farm', (farmId) => {

@@ -21,6 +21,21 @@ exports.getCurrent = asyncHandler(async (req, res) => {
   });
 });
 
+// Full live conditions for the 3D weather system. Serves the cached value if
+// fresh (< 15 min), otherwise fetches Open-Meteo and caches it.
+exports.getLive = asyncHandler(async (req, res) => {
+  const farm = await getFarm(req.params.farmId);
+  if (farm.location?.lat == null || farm.location?.lng == null) {
+    return success(res, { weather: null, message: 'Farm has no coordinates' });
+  }
+  let w = weatherService.getCached(farm._id);
+  if (!w || Date.now() - w.fetchedAt > 15 * 60 * 1000) {
+    w = await weatherService.getCurrent(farm.location.lat, farm.location.lng);
+    weatherService.setCached(farm._id, w);
+  }
+  success(res, { weather: w });
+});
+
 exports.getForecast = asyncHandler(async (req, res) => {
   const farm = await getFarm(req.params.farmId);
   const data = await weatherService.getForecast(farm.location.lat, farm.location.lng, 3);

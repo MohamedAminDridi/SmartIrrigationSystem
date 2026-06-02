@@ -3,6 +3,7 @@ const logger  = require('../utils/logger');
 const Node    = require('../models/Node.model');
 const Gateway = require('../models/Gateway.model');
 const Alert   = require('../models/Alert.model');
+const weather = require('../services/weather.service');
 const { emitToFarm } = require('../socket/socketServer');
 
 // 1-hour cooldown: don't spam the same offline alert every cron tick
@@ -83,6 +84,16 @@ exports.startJobs = () => {
       });
     }
   });
+
+  // ── Live weather: fetch Open-Meteo per farm and broadcast over Socket.IO ──
+  // Every 15 min (Open-Meteo updates ~hourly; 15 min keeps clients fresh while
+  // staying well within the free rate limit). Plus one run ~5 s after boot.
+  cron.schedule('*/15 * * * *', () => {
+    weather.refreshAllFarms().catch((e) => logger.warn(`Weather refresh failed: ${e.message}`));
+  });
+  setTimeout(() => {
+    weather.refreshAllFarms().catch((e) => logger.warn(`Weather warm-up failed: ${e.message}`));
+  }, 5000);
 
   // ── Daily summary log ──────────────────────────────────────────────
   cron.schedule('0 0 * * *', () => {

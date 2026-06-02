@@ -7,8 +7,9 @@ const nodeSchema = new mongoose.Schema({
   name:                { type: String, required: true, trim: true },
   location:            { lat: Number, lng: Number },
   // Saved 3D-twin layout + plot customization. x/z = ground position (metres);
-  // size = plot side length; rot = degrees; color = custom tint (null=status); label = crop name.
-  twin:                { x: Number, z: Number, size: Number, rot: Number, color: String, label: String },
+  // size = plot side length; rot = degrees; color = custom tint (null=status); label = crop name;
+  // crop = plant species rendered on the plot (tomato/lettuce/wheat/…).
+  twin:                { x: Number, z: Number, size: Number, rot: Number, color: String, label: String, crop: String },
   // Irrigation zone name (groups plots that share a schedule / can be toggled together).
   zone:                { type: String, default: null, trim: true },
   sensor_types:        [{ type: String }],

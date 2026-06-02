@@ -12,6 +12,14 @@ export const useTwinStore = create((set) => ({
   custom: {},        // { [device_id]: { size, rot, color, label } }  per-plot customization
   zones: {},         // { [zoneName]: color }  irrigation-zone tints
   selectedId: null,  // device_id of the clicked node, or null
+  weather: null,     // live Open-Meteo conditions for this farm (or null)
+  weatherLocked: false, // true while a manual demo override is active (ignores live)
+  // Master feature switches for the 3D twin (toggled from the settings gear).
+  // Deeply-nested components (crops/energy inside nodes) read these directly.
+  features: {
+    weather: true, crops: true, pipes: true, energy: true,
+    labels: true, signal: false,   // signal = Electromagnetic / Signal Spectrum mode
+  },
   live: false,       // socket connected?
   editMode: false,   // layout-edit (drag) mode on?
   dragging: false,   // a marker is currently being dragged
@@ -58,6 +66,10 @@ export const useTwinStore = create((set) => ({
   // playback
   setPlayback: (patch) => set((s) => ({ playback: { ...s.playback, ...patch } })),
 
+  setWeather:       (w) => set({ weather: w }),
+  setWeatherLocked: (v) => set({ weatherLocked: v }),
+  setFeature:    (k, v) => set((s) => ({ features: { ...s.features, [k]: v } })),
+  toggleFeature: (k)    => set((s) => ({ features: { ...s.features, [k]: !s.features[k] } })),
   select:      (deviceId) => set({ selectedId: deviceId }),
   setLive:     (v)        => set({ live: v }),
   setEditMode: (v)        => set({ editMode: v, dragging: false }),
