@@ -16,7 +16,7 @@ exports.getForecast = async (lat, lng, days = 1) => {
   return data;
 };
 
-// ── WMO weather code → simple condition the 3D scene can switch on ───────────
+// ── WMO weather code → simple condition the 3D scene can switch onn ───────────
 function codeToCondition(code) {
   if (code == null) return 'clear';
   if (code === 0) return 'clear';
