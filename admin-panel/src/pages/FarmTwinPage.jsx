@@ -148,15 +148,35 @@ const SUN_MOON  = new THREE.Color('#9db4e8');
 const CROP_DRY  = new THREE.Color('#c2a64a');
 
 // Crop species you can place on a plot (chosen in the Customize panel). Each
-// renders a different plant shape; `leaf` is the healthy (well-watered) colour,
-// `fruit` adds coloured fruit dots.
+// renders a plant shape; `leaf` = healthy colour, `fruit` adds fruit dots,
+// `icon` is the picker thumbnail, `cat` groups it for the search/filter.
 const CROP_TYPES = {
-  grass:   { name: 'Grass',      shape: 'cone',  leaf: '#6a8f3a' },
-  tomato:  { name: 'Tomato',     shape: 'bush',  leaf: '#3f8f3a', fruit: '#e23b3b' },
-  pepper:  { name: 'Pepper',     shape: 'pepper', leaf: '#3f8f3a', fruit: '#e0a21f' },
-  lettuce: { name: 'Lettuce',    shape: 'leafy', leaf: '#7cc24a' },
-  wheat:   { name: 'Wheat',      shape: 'stalk', leaf: '#d9b44a' },
-  fruit:   { name: 'Fruit tree', shape: 'tree',  leaf: '#2f7d3a', fruit: '#e8632b' },
+  grass:      { name: 'Grass',       icon: '🌿', cat: 'Other',      shape: 'cone',   leaf: '#6a8f3a' },
+  // Vegetables
+  tomato:     { name: 'Tomato',      icon: '🍅', cat: 'Vegetables', shape: 'bush',   leaf: '#3f8f3a', fruit: '#e23b3b' },
+  pepper:     { name: 'Pepper',      icon: '🌶️', cat: 'Vegetables', shape: 'pepper', leaf: '#3f8f3a', fruit: '#e0a21f' },
+  eggplant:   { name: 'Eggplant',    icon: '🍆', cat: 'Vegetables', shape: 'bush',   leaf: '#3f8f3a', fruit: '#7c3aed' },
+  cucumber:   { name: 'Cucumber',    icon: '🥒', cat: 'Vegetables', shape: 'bush',   leaf: '#3f8f3a', fruit: '#4a9a3a' },
+  potato:     { name: 'Potato',      icon: '🥔', cat: 'Vegetables', shape: 'bush',   leaf: '#4f7d3a' },
+  carrot:     { name: 'Carrot',      icon: '🥕', cat: 'Vegetables', shape: 'leafy',  leaf: '#5fae3a' },
+  onion:      { name: 'Onion',       icon: '🧅', cat: 'Vegetables', shape: 'leafy',  leaf: '#8fae5a' },
+  // Leafy greens
+  lettuce:    { name: 'Lettuce',     icon: '🥬', cat: 'Greens',     shape: 'leafy',  leaf: '#7cc24a' },
+  cabbage:    { name: 'Cabbage',     icon: '🥬', cat: 'Greens',     shape: 'leafy',  leaf: '#6fb04a' },
+  // Grains / field
+  wheat:      { name: 'Wheat',       icon: '🌾', cat: 'Grains',     shape: 'stalk',  leaf: '#d9b44a' },
+  corn:       { name: 'Corn',        icon: '🌽', cat: 'Grains',     shape: 'stalk',  leaf: '#9fcf4a', fruit: '#f4c430' },
+  rice:       { name: 'Rice',        icon: '🌾', cat: 'Grains',     shape: 'stalk',  leaf: '#8fc04a' },
+  sunflower:  { name: 'Sunflower',   icon: '🌻', cat: 'Grains',     shape: 'stalk',  leaf: '#5fae3a', fruit: '#f4c430' },
+  // Fruits & berries
+  strawberry: { name: 'Strawberry',  icon: '🍓', cat: 'Fruits',     shape: 'bush',   leaf: '#4a9a3a', fruit: '#e23b3b' },
+  grapes:     { name: 'Grapevine',   icon: '🍇', cat: 'Fruits',     shape: 'bush',   leaf: '#4a8f3a', fruit: '#7c3aed' },
+  // Trees
+  apple:      { name: 'Apple tree',  icon: '🍎', cat: 'Trees',      shape: 'tree',   leaf: '#2f7d3a', fruit: '#e23b3b' },
+  orange:     { name: 'Orange tree', icon: '🍊', cat: 'Trees',      shape: 'tree',   leaf: '#2f7d3a', fruit: '#f59e0b' },
+  lemon:      { name: 'Lemon tree',  icon: '🍋', cat: 'Trees',      shape: 'tree',   leaf: '#3f8f3a', fruit: '#e9d24a' },
+  olive:      { name: 'Olive tree',  icon: '🫒', cat: 'Trees',      shape: 'tree',   leaf: '#5f7d4a', fruit: '#5a6e2a' },
+  fruit:      { name: 'Fruit tree',  icon: '🌳', cat: 'Trees',      shape: 'tree',   leaf: '#2f7d3a', fruit: '#e8632b' },
 };
 const CROP_KEYS = Object.keys(CROP_TYPES);
 
@@ -169,7 +189,21 @@ const PIPE_UP = new THREE.Vector3(0, 1, 0);
 // by every component that reacts to nightfall/weather — no React re-renders.
 //   night: 0 (full day) … 1 (deep night)    sun: −1 … +1 (elevation)
 //   cloud: 0…1 overcast   wet: 0…1 ground wetness   windX/windZ: drift vector
-const ENV = { night: 0, sun: 1, cloud: 0, wet: 0, windX: 0.4, windZ: 0.2, windSpeed: 0.1 };
+//   digital: 0 (physical world) … 1 (digital/cyber layer) — eased transition
+const ENV = { night: 0, sun: 1, cloud: 0, wet: 0, windX: 0.4, windZ: 0.2, windSpeed: 0.1, digital: 0 };
+
+// The intelligence layers of the digital world (each has an accent + identity).
+const LAYER_THEME = {
+  overview: { color: '#38e0ff', name: 'Overview',    icon: '🌐', tag: 'ALL SYSTEMS' },
+  ai:       { color: '#a855f7', name: 'AI Brain',    icon: '🧠', tag: 'AI REASONING' },
+  water:    { color: '#22d3ee', name: 'Water',       icon: '🌊', tag: 'WATER INTELLIGENCE' },
+  comms:    { color: '#22e0ff', name: 'Comms',       icon: '📡', tag: 'LoRa NETWORK' },
+  climate:  { color: '#34d399', name: 'Climate',     icon: '🌫️', tag: 'ATMOSPHERE FLOW' },
+  predict:  { color: '#f472b6', name: 'Prediction',  icon: '🔮', tag: '+48H FORECAST' },
+  bio:      { color: '#84cc16', name: 'Biology',     icon: '🌱', tag: 'ROOT NETWORK' },
+  energy:   { color: '#fbbf24', name: 'Energy',      icon: '⚡', tag: 'POWER FLOW' },
+};
+const LAYER_KEYS = Object.keys(LAYER_THEME);
 const NEON_BLUE = '#38e0ff';
 const NEON_CYAN = '#22d3ee';
 const SOLAR_YEL = '#ffd54a';
@@ -207,25 +241,46 @@ function NightSky() {
 // once on a canvas so there are no external texture files to ship.
 function makeGroundTexture() {
   if (typeof document === 'undefined') return null;
-  const s = 512;
+  const s = 1024;
   const cv = document.createElement('canvas'); cv.width = cv.height = s;
   const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#7e9150'; ctx.fillRect(0, 0, s, s);
-  for (let i = 0; i < 2600; i++) {
-    const x = Math.random() * s, y = Math.random() * s, r = 2 + Math.random() * 10;
+  // tilled-farmland soil: warm earth base, plough furrows, grass + dirt patches
+  ctx.fillStyle = '#6f7d44'; ctx.fillRect(0, 0, s, s);
+  // soft large-scale colour variation
+  for (let i = 0; i < 90; i++) {
+    const x = Math.random() * s, y = Math.random() * s, r = 30 + Math.random() * 90;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    const c = Math.random() < 0.5 ? '120,140,72' : '92,76,52';
+    g.addColorStop(0, `rgba(${c},${0.06 + Math.random() * 0.1})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  // plough furrow rows (subtle horizontal banding) for a worked-field look
+  const rows = 26;
+  for (let i = 0; i < rows; i++) {
+    const y = (i / rows) * s + (Math.random() - 0.5) * 3;
+    ctx.strokeStyle = i % 2 ? 'rgba(60,70,38,0.18)' : 'rgba(150,140,98,0.12)';
+    ctx.lineWidth = 2 + Math.random() * 2;
+    ctx.beginPath();
+    for (let x = 0; x <= s; x += 16) ctx.lineTo(x, y + Math.sin(x * 0.05) * 1.6);
+    ctx.stroke();
+  }
+  // grass tufts + dirt clods speckle
+  for (let i = 0; i < 2800; i++) {
+    const x = Math.random() * s, y = Math.random() * s, r = 1.5 + Math.random() * 7;
     const g = Math.random();
-    ctx.fillStyle = g < 0.4 ? `rgba(110,134,70,${0.12 + Math.random() * 0.28})`
-                  : g < 0.7 ? `rgba(64,84,42,${0.10 + Math.random() * 0.28})`
-                  :           `rgba(150,138,96,${0.08 + Math.random() * 0.22})`;
+    ctx.fillStyle = g < 0.45 ? `rgba(116,142,72,${0.12 + Math.random() * 0.3})`   // grass
+                  : g < 0.72 ? `rgba(58,74,38,${0.10 + Math.random() * 0.28})`    // dark soil
+                  :            `rgba(150,132,92,${0.08 + Math.random() * 0.24})`; // dry clods
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   }
   const t = new THREE.CanvasTexture(cv);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(20, 20); t.anisotropy = 4;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(48, 48); t.anisotropy = 16;
   return t;
 }
 function makeBumpTexture() {
   if (typeof document === 'undefined') return null;
-  const s = 256;
+  const s = 512;
   const cv = document.createElement('canvas'); cv.width = cv.height = s;
   const ctx = cv.getContext('2d');
   const img = ctx.createImageData(s, s);
@@ -235,11 +290,13 @@ function makeBumpTexture() {
   }
   ctx.putImageData(img, 0, 0);
   const t = new THREE.CanvasTexture(cv);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(60, 60);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(180, 180);
   return t;
 }
 const GROUND_TEX  = makeGroundTexture();
 const GROUND_BUMP = makeBumpTexture();
+const GROUND_SIZE  = 600;   // huge so the edge sits far out at the horizon (no visible void)
+const GROUND_THICK = 6;     // solid slab depth so the sides read as earth, not a floating sheet
 
 // Textured ground that turns darker & glossy as it gets wet (ENV.wet).
 function Ground() {
@@ -256,13 +313,21 @@ function Ground() {
     m.metalness = THREE.MathUtils.lerp(m.metalness, ENV.wet * 0.3, k);
     // self-illuminate the textured ground at night so it stays clearly visible
     m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, 0.1 + ENV.night * 0.7, k);
+    // in the digital layer the terrain turns semi-transparent (reveal underground).
+    // Reality keeps transparent=false so it renders exactly as before.
+    const wantT = ENV.digital > 0.02;
+    if (m.transparent !== wantT) { m.transparent = wantT; m.needsUpdate = true; }
+    m.opacity = THREE.MathUtils.lerp(m.opacity, 1 - ENV.digital * 0.68, k);
+    m.depthWrite = ENV.digital < 0.35;
   });
+  // A thick slab (box) instead of a flat plane: top sits at y=0, the body gives
+  // it solid earth sides so you never see the void at the edges.
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <planeGeometry args={[GROUND, GROUND, 1, 1]} />
-      <meshStandardMaterial ref={matRef} map={GROUND_TEX} bumpMap={GROUND_BUMP} bumpScale={0.35}
-        color="#7e9150" emissiveMap={GROUND_TEX} emissive="#9aa86a" emissiveIntensity={0.1}
-        roughness={1} metalness={0} />
+    <mesh position={[0, -GROUND_THICK / 2, 0]} receiveShadow>
+      <boxGeometry args={[GROUND_SIZE, GROUND_THICK, GROUND_SIZE]} />
+      <meshStandardMaterial ref={matRef} map={GROUND_TEX} bumpMap={GROUND_BUMP} bumpScale={0.4}
+        roughnessMap={GROUND_BUMP} emissiveMap={GROUND_TEX} emissive="#9aa86a" emissiveIntensity={0.1}
+        color="#7e9150" roughness={0.95} metalness={0} />
     </mesh>
   );
 }
@@ -486,6 +551,73 @@ function hourFromClock(c, nowMs) {
 // Sun height: 0 at 06:00 / 18:00, +1 at noon, −1 at midnight.
 const sunElevation = (h) => Math.sin(((h - 6) / 12) * Math.PI);
 
+/* ----------------------------------------- planetary pulse (moon + seasons) */
+// Moon phase 0..1 (0/1 = new, 0.5 = full) from a known new-moon epoch.
+function moonPhase(ms) {
+  const SYNODIC = 29.530588853;                  // days
+  const ref = Date.UTC(2000, 0, 6, 18, 14) / 86400000;  // 2000-01-06 new moon, in days
+  const days = ms / 86400000 - ref;
+  return (((days % SYNODIC) + SYNODIC) % SYNODIC) / SYNODIC;
+}
+const moonIllum = (p) => (1 - Math.cos(p * 2 * Math.PI)) / 2;   // 0 new … 1 full
+const MOON_NAMES = ['New', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous', 'Full', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
+const MOON_ICONS = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+const moonIndex = (p) => Math.round(p * 8) % 8;
+// Meteorological season from month + hemisphere (lat sign).
+const SEASONS = {
+  spring: { name: 'Spring', icon: '🌸', tint: '#bfe6a0' },
+  summer: { name: 'Summer', icon: '☀️', tint: '#fff0c0' },
+  autumn: { name: 'Autumn', icon: '🍂', tint: '#f0c890' },
+  winter: { name: 'Winter', icon: '❄️', tint: '#cfe0ff' },
+};
+function seasonOf(date, lat) {
+  const n = ['winter', 'winter', 'spring', 'spring', 'spring', 'summer', 'summer', 'summer', 'autumn', 'autumn', 'autumn', 'winter'][date.getMonth()];
+  if ((lat ?? 40) >= 0) return n;
+  return { winter: 'summer', summer: 'winter', spring: 'autumn', autumn: 'spring' }[n];   // southern hemisphere
+}
+
+// A real moon disc with the correct illuminated crescent/gibbous for `phase`
+// (0/1 new … 0.5 full), drawn once on a canvas with subtle craters.
+function makeMoonTexture(phase) {
+  if (typeof document === 'undefined') return null;
+  const S = 256, cx = S / 2, cy = S / 2, R = S * 0.46;
+  const cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#13151f'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();   // earthshine dark side
+  const cosP = Math.cos(2 * Math.PI * phase);
+  const waxing = phase < 0.5;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+  ctx.fillStyle = '#e9edf6';                              // lit region: limb arc + terminator ellipse
+  ctx.beginPath();
+  const N = 60;
+  for (let i = 0; i <= N; i++) { const th = -Math.PI / 2 + (i / N) * Math.PI; const c = waxing ? Math.cos(th) : -Math.cos(th); ctx.lineTo(cx + R * c, cy + R * Math.sin(th)); }
+  for (let i = N; i >= 0; i--) { const th = -Math.PI / 2 + (i / N) * Math.PI; const c = (waxing ? Math.cos(th) : -Math.cos(th)) * cosP; ctx.lineTo(cx + R * c, cy + R * Math.sin(th)); }
+  ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 0.12; ctx.fillStyle = '#7d8596';      // craters
+  [[0.32, 0.36, 0.12], [0.6, 0.56, 0.15], [0.46, 0.7, 0.1], [0.68, 0.32, 0.08], [0.52, 0.5, 0.18]]
+    .forEach(([fx, fy, fr]) => { ctx.beginPath(); ctx.arc(cx + (fx - 0.5) * 2 * R, cy + (fy - 0.5) * 2 * R, fr * R, 0, Math.PI * 2); ctx.fill(); });
+  ctx.restore();
+  const t = new THREE.CanvasTexture(cv); t.anisotropy = 8; return t;
+}
+const MOON_TEX = makeMoonTexture(moonPhase(Date.now()));
+
+// Soft hot sun disc (radial gradient) reused at several scales for a bloom-like sun.
+function makeSunTexture() {
+  if (typeof document === 'undefined') return null;
+  const S = 128, c = S / 2;
+  const cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const ctx = cv.getContext('2d');
+  const g = ctx.createRadialGradient(c, c, 0, c, c, c);
+  g.addColorStop(0, 'rgba(255,255,250,1)');
+  g.addColorStop(0.35, 'rgba(255,242,205,0.95)');
+  g.addColorStop(0.6, 'rgba(255,205,130,0.45)');
+  g.addColorStop(1, 'rgba(255,185,95,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
+  return new THREE.CanvasTexture(cv);
+}
+const SUN_TEX = makeSunTexture();
+
 // square loop (closed) of given half-extent at a given height
 const squareLoop = (h, y) => [[-h, y, -h], [h, y, -h], [h, y, h], [-h, y, h], [-h, y, -h]];
 
@@ -647,7 +779,8 @@ function NodeEnergy({ deviceId, half }) {
     const prod = Math.max(0, ENV.sun);          // solar production 0..1 (by sun height)
     const bat  = Math.max(0, Math.min(100, Number(d.bat ?? d.battery_pct ?? 0)));
     const load = (d.pump ?? d.pump_state) === 'on' || (d.valve ?? d.valve_state) === 'open';
-    const charging = prod > 0.05 && bat < 99;
+    // prefer the real INA219 charging flag; fall back to the solar estimate
+    const charging = (d.charging ?? d.battery_charging) ?? (prod > 0.05 && bat < 99);
 
     if (prodRef.current) {
       const m = prodRef.current.material;
@@ -711,6 +844,7 @@ function NodeMarker({ deviceId, gwColor, selected, editMode, onSelect, onBeginDr
   const pos  = useTwinStore((s) => s.positions[deviceId]) || [0, 0, 0];
   const cust = useTwinStore((s) => s.custom[deviceId]) || {};
   const feat = useTwinStore((s) => s.features);
+  const energyLayer = useTwinStore((s) => s.digital && s.digitalLayer === 'energy');
   const plotRef  = useRef();
   const discRef  = useRef();
   const ringRef  = useRef();
@@ -920,14 +1054,21 @@ function NodeMarker({ deviceId, gwColor, selected, editMode, onSelect, onBeginDr
       {/* off-grid solar power: panel + battery + animated energy flows */}
       {feat.energy && <NodeEnergy deviceId={deviceId} half={half} />}
 
-      {feat.labels && (
-        <Html position={[0, 2.1, 0]} center distanceFactor={13} className="pointer-events-none select-none">
-          <div className="px-2 py-0.5 rounded-md bg-white/90 shadow text-[11px] leading-tight whitespace-nowrap border border-gray-200">
-            <span className="font-semibold text-gray-800">{label || dev.name || deviceId}</span>
-            <span className="text-gray-500"> · {dev.soil ?? dev.soil_moisture_pct ?? '—'}%</span>
-          </div>
-        </Html>
-      )}
+      {feat.labels && !energyLayer && (() => {
+        const bat = dev.bat ?? dev.battery_pct;
+        const charging = dev.charging ?? dev.battery_charging;
+        return (
+          <Html position={[0, 2.1, 0]} center distanceFactor={13} className="pointer-events-none select-none">
+            <div className="px-2 py-0.5 rounded-md bg-white/90 shadow text-[11px] leading-tight whitespace-nowrap border border-gray-200">
+              <span className="font-semibold text-gray-800">{label || dev.name || deviceId}</span>
+              <span className="text-gray-500"> · 💧{dev.soil ?? dev.soil_moisture_pct ?? '—'}%</span>
+              <span className={charging ? 'text-amber-500 font-semibold' : 'text-emerald-600 font-medium'}>
+                {' · '}{charging ? '⚡' : '🔋'}{bat ?? '—'}%{charging ? ' charging' : ''}
+              </span>
+            </div>
+          </Html>
+        );
+      })()}
     </group>
   );
 }
@@ -1328,6 +1469,8 @@ function PipeNetwork({ scene }) {
 // chain, and interference colouring (cyan = strong, magenta = weak) from RSSI.
 const RF_STRONG = new THREE.Color('#22e0ff');
 const RF_WEAK   = new THREE.Color('#ff2d7e');
+const RF_OFF    = new THREE.Color('#ef4444');   // offline node = red / no signal
+const RF_DOWN   = new THREE.Color('#fbbf24');   // downlink (gateway → node commands)
 const rssiQuality = (r) => (r == null ? 0.6 : Math.max(0, Math.min(1, (r + 110) / 60))); // −110..−50 → 0..1
 // Height of the glowing "lamp" (status orb / antenna tip) each signal rides on.
 const lampHeight = (key, gwSet) => (gwSet.has(key) ? 2.2 : 1.66);
@@ -1340,10 +1483,11 @@ function RfWaves({ deviceId, baseColor, y = 1.66, maxR = 8, count = 3, interfere
   const tmp   = useMemo(() => new THREE.Color(), []);
   useFrame(() => {
     const t = performance.now() * 0.001;
-    let c = fixed;
+    let c = fixed, off = false;
     if (interference) {
       const d = useTwinStore.getState().byId[deviceId] || {};
-      c = tmp.copy(RF_WEAK).lerp(RF_STRONG, rssiQuality(d.rssi ?? d.lora_rssi));
+      off = d.status === 'offline';
+      c = off ? RF_OFF : tmp.copy(RF_WEAK).lerp(RF_STRONG, rssiQuality(d.rssi ?? d.lora_rssi));
     }
     for (let i = 0; i < refs.current.length; i++) {
       const g = refs.current[i]; if (!g) continue;
@@ -1351,7 +1495,7 @@ function RfWaves({ deviceId, baseColor, y = 1.66, maxR = 8, count = 3, interfere
       const r = 0.3 + p * maxR;
       g.scale.set(r, r, r);
       g.position.y = p * 1.2;                        // also drift upward off the lamp
-      g.children[0].material.opacity = (1 - p) * 0.5;
+      g.children[0].material.opacity = (1 - p) * (off ? 0.22 : 0.5);   // dim when offline
       g.children[0].material.color.copy(c);
     }
   });
@@ -1369,14 +1513,24 @@ function RfWaves({ deviceId, baseColor, y = 1.66, maxR = 8, count = 3, interfere
   );
 }
 
-// Animated zigzag "sound-wave" signal flowing lamp → lamp along one relay hop.
-// A polyline whose perpendicular offset is a travelling sine (tapered to 0 at
-// both lamps), rebuilt every frame — colour by the receiving node's RSSI.
+// Animated zigzag "sound-wave" signal between two radios with visible DATA
+// PACKETS riding the wave: cyan/magenta telemetry flowing node→gateway (uplink,
+// coloured by RSSI) and amber commands flowing gateway→node (downlink). The
+// polyline + the packets share the exact same wave function so packets sit on it.
 const WAVE_N = 56;
+const WAVE_PACKETS = [
+  { dir: -1, phase: 0.00, sp: 0.55 },   // uplink  (node → gateway)
+  { dir: -1, phase: 0.34, sp: 0.55 },
+  { dir: -1, phase: 0.68, sp: 0.55 },
+  { dir:  1, phase: 0.20, sp: 0.38 },   // downlink (gateway → node)
+  { dir:  1, phase: 0.70, sp: 0.38 },
+];
 function SignalWave({ fromKey, toKey, fromY, toY }) {
   const a = useTwinStore((s) => s.positions[fromKey]);
   const b = useTwinStore((s) => s.positions[toKey]);
   const lineRef = useRef();
+  const pktRefs = useRef([]);
+  const col = useMemo(() => new THREE.Color(), []);
   const geo = useMemo(() => {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(WAVE_N * 3), 3));
@@ -1385,33 +1539,72 @@ function SignalWave({ fromKey, toKey, fromY, toY }) {
   useFrame(() => {
     if (!a || !b || !lineRef.current) return;
     const t = performance.now() * 0.001;
+    const d = useTwinStore.getState().byId[toKey] || {};
+    const offline = d.status === 'offline';
     const ax = a[0], az = a[2], bx = b[0], bz = b[2];
     const dx = bx - ax, dz = bz - az;
     const len = Math.hypot(dx, dz) || 1;
     const px = -dz / len, pz = dx / len;            // horizontal perpendicular
-    const amp = Math.min(0.7, len * 0.07);
-    const cyc = Math.max(4, Math.round(len * 0.9)); // more zigzags on longer hops
-    const arr = geo.attributes.position.array;
-    for (let i = 0; i < WAVE_N; i++) {
-      const s = i / (WAVE_N - 1);
-      const env = Math.sin(s * Math.PI);            // taper to 0 at both lamps
-      const ph  = s * Math.PI * 2 * cyc - t * 7;    // travelling wave (node→gw feel)
+    const amp = offline ? 0 : Math.min(0.7, len * 0.07);
+    const cyc = Math.max(4, Math.round(len * 0.9));
+    // shared wave function → both the line and the packets sample this
+    const wave = (s, out) => {
+      const env = Math.sin(s * Math.PI);
+      const ph  = s * Math.PI * 2 * cyc - t * 7;
       const off = Math.sin(ph) * amp * env;
-      arr[i * 3]     = ax + dx * s + px * off;
-      arr[i * 3 + 1] = (fromY + (toY - fromY) * s) + Math.cos(ph) * amp * env * 0.45;
-      arr[i * 3 + 2] = az + dz * s + pz * off;
-    }
+      out[0] = ax + dx * s + px * off;
+      out[1] = (fromY + (toY - fromY) * s) + Math.cos(ph) * amp * env * 0.45;
+      out[2] = az + dz * s + pz * off;
+      return env;
+    };
+    const arr = geo.attributes.position.array;
+    const tmp = [0, 0, 0];
+    for (let i = 0; i < WAVE_N; i++) { wave(i / (WAVE_N - 1), tmp); arr[i * 3] = tmp[0]; arr[i * 3 + 1] = tmp[1]; arr[i * 3 + 2] = tmp[2]; }
     geo.attributes.position.needsUpdate = true;
     geo.computeBoundingSphere();
-    const d = useTwinStore.getState().byId[toKey] || {};
-    lineRef.current.material.color.copy(rssiQuality(d.rssi ?? d.lora_rssi) > 0.5 ? RF_STRONG : RF_WEAK);
-    lineRef.current.material.opacity = 0.55 + 0.25 * Math.sin(t * 4);
+    col.copy(offline ? RF_OFF : (rssiQuality(d.rssi ?? d.lora_rssi) > 0.5 ? RF_STRONG : RF_WEAK));
+    lineRef.current.material.color.copy(col);
+    lineRef.current.material.opacity = offline ? 0.22 : 0.4 + 0.12 * Math.sin(t * 4);
+
+    // data packets travelling along the wave
+    for (let i = 0; i < WAVE_PACKETS.length; i++) {
+      const m = pktRefs.current[i]; if (!m) continue;
+      if (offline) { m.visible = false; continue; }
+      m.visible = true;
+      const pk = WAVE_PACKETS[i];
+      const u = (t * pk.sp + pk.phase) % 1;
+      const s = pk.dir < 0 ? 1 - u : u;              // uplink travels node→gateway
+      const env = wave(s, tmp);
+      m.position.set(tmp[0], tmp[1], tmp[2]);
+      m.material.opacity = env * (pk.dir < 0 ? 0.95 : 0.7);
+      m.material.color.copy(pk.dir < 0 ? col : RF_DOWN);
+      const sc = pk.dir < 0 ? 0.55 : 0.42; m.scale.set(sc, sc, sc);
+    }
   });
   if (!a || !b) return null;
   return (
-    <line ref={lineRef} geometry={geo} frustumCulled={false}>
-      <lineBasicMaterial transparent opacity={0.7} depthWrite={false} blending={THREE.AdditiveBlending} />
-    </line>
+    <group>
+      <line ref={lineRef} geometry={geo} frustumCulled={false}>
+        <lineBasicMaterial transparent opacity={0.5} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </line>
+      {WAVE_PACKETS.map((_, i) => (
+        <sprite key={i} ref={(el) => (pktRefs.current[i] = el)} visible={false}>
+          <spriteMaterial map={GLOW_TEX} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </sprite>
+      ))}
+    </group>
+  );
+}
+
+// Floating "NO SIGNAL" tag over an offline node in the comms layer.
+function NoSignalTag({ deviceId }) {
+  const status = useTwinStore((s) => s.byId[deviceId]?.status);
+  const pos = useTwinStore((s) => s.positions[deviceId]);
+  if (status !== 'offline' || !pos) return null;
+  return (
+    <Html position={[pos[0], 2.25, pos[2]]} center distanceFactor={14} className="pointer-events-none select-none">
+      <div className="px-1.5 py-0.5 rounded bg-red-950/85 text-red-300 text-[9px] font-bold whitespace-nowrap ring-1 ring-red-500/50 animate-pulse">✕ NO SIGNAL</div>
+    </Html>
   );
 }
 
@@ -1422,10 +1615,40 @@ function SignalSpectrum({ scene }) {
     <group>
       {gwIds.map((id) => <RfWaves key={id} deviceId={id} baseColor={gwColor[id]} y={2.2} maxR={3.2} count={4} />)}
       {nodeIds.map((id) => <RfWaves key={id} deviceId={id} y={1.66} maxR={2.2} count={3} interference />)}
+      {nodeIds.map((id) => <NoSignalTag key={`ns${id}`} deviceId={id} />)}
       {links.map((l) => (
         <SignalWave key={`${l.fromKey}->${l.toKey}`} fromKey={l.fromKey} toKey={l.toKey}
           fromY={lampHeight(l.fromKey, gwSet)} toY={lampHeight(l.toKey, gwSet)} />
       ))}
+    </group>
+  );
+}
+
+// LAYER · ENERGY — live INA219 readout floating over each node (3D tags):
+// battery %, bus voltage, current, and charge direction.
+function EnergyTags({ scene }) {
+  const byId = useTwinStore((s) => s.byId);
+  const positions = useTwinStore((s) => s.positions);
+  return (
+    <group>
+      {scene.nodeIds.map((id) => {
+        const p = positions[id]; if (!p) return null;
+        const d = byId[id] || {};
+        const v   = d.bat_v ?? d.battery_v;
+        const ma  = d.bat_ma ?? d.battery_ma;
+        const pct = d.bat ?? d.battery_pct;
+        const charging = d.charging ?? d.battery_charging;
+        return (
+          <Html key={id} position={[p[0], 2.0, p[2]]} center distanceFactor={15} className="pointer-events-none select-none">
+            <div className="px-2 py-1 rounded-lg bg-slate-900/85 ring-1 ring-amber-400/40 text-[9px] font-mono text-center whitespace-nowrap shadow-lg">
+              <div className={charging ? 'text-emerald-300 font-bold' : 'text-amber-300 font-bold'}>
+                {charging ? '⚡' : '🔋'} {pct != null ? `${Math.round(pct)}%` : '—'}
+              </div>
+              <div className="text-slate-300">{v != null ? `${v.toFixed(2)}V` : '—'} · {ma != null ? `${Math.round(ma)}mA` : '—'}</div>
+            </div>
+          </Html>
+        );
+      })}
     </group>
   );
 }
@@ -1453,16 +1676,17 @@ function SkyAndSun({ clock }) {
     ENV.night = Math.max(0, Math.min(1, (0.15 - e) / 0.7));
 
     const cloudDim = 1 - ENV.cloud * 0.6;               // overcast → softer sun
+    const moonFloor = 0.04 + moonIllum(moonPhase(Date.now())) * 0.14;  // brighter nights at full moon
     if (dirRef.current) {
       const az = ((h - 6) / 12) * Math.PI;              // 0 sunrise … π sunset
       dirRef.current.position.set(Math.cos(az) * 45, Math.max(e, -0.3) * 50 + 6, 18);
-      dirRef.current.intensity = (0.12 + day * 1.35) * cloudDim; // moon floor + sun, dimmed by cloud
+      dirRef.current.intensity = (moonFloor + day * 1.35) * cloudDim * (1 - ENV.digital * 0.72); // moon floor + sun, dim in digital
       col.copy(SUN_NOON).lerp(SUN_LOW, lowSun);         // warm at the horizon
       if (e < 0) col.lerp(SUN_MOON, Math.min(1, -e * 2)); // cool at night
       dirRef.current.color.copy(col);
     }
     if (hemiRef.current) {
-      hemiRef.current.intensity = (0.18 + day * 0.7) * (1 - ENV.cloud * 0.35);
+      hemiRef.current.intensity = (0.18 + day * 0.7) * (1 - ENV.cloud * 0.35) * (1 - ENV.digital * 0.6);
       // tint the fill light deep blue/purple at night for the cyberpunk look
       hemiRef.current.color.copy(hemiSky.set('#eaf2ff').lerp(new THREE.Color('#2b2f6b'), ENV.night));
       hemiRef.current.groundColor.copy(hemiGnd.set('#b8c6a8').lerp(new THREE.Color('#0e1330'), ENV.night));
@@ -1471,6 +1695,7 @@ function SkyAndSun({ clock }) {
 
     sky.copy(SKY_NIGHT).lerp(SKY_DAY, Math.max(0, Math.min(1, (e + 0.25) / 0.6)));
     sky.lerp(SKY_DUSK, lowSun * 0.55);                  // dawn/dusk glow
+    if (ENV.digital > 0.001) sky.lerp(DIGI_DARK, ENV.digital * 0.92);  // cyber void in digital layer
     if (scene.background && scene.background.isColor) scene.background.copy(sky);
     if (scene.fog) scene.fog.color.copy(sky);
   });
@@ -1482,12 +1707,214 @@ function SkyAndSun({ clock }) {
       <directionalLight
         ref={dirRef}
         position={[24, 30, 14]} intensity={1.25} castShadow
-        shadow-mapSize-width={2048} shadow-mapSize-height={2048}
-        shadow-bias={-0.0004}
-        shadow-camera-left={-50} shadow-camera-right={50} shadow-camera-top={50} shadow-camera-bottom={-50}
+        shadow-mapSize-width={4096} shadow-mapSize-height={4096}
+        shadow-bias={-0.0002} shadow-normalBias={0.025} shadow-radius={4}
+        shadow-camera-left={-60} shadow-camera-right={60} shadow-camera-top={60} shadow-camera-bottom={-60}
       />
       <NightSky />
     </>
+  );
+}
+
+/* ------------------------------- planetary: HQ sun disc + crescent moon */
+// A glowing layered sun (bloom-like) that arcs with the clock, and a real-phase
+// crescent/gibbous moon rising opposite it and brightening through its cycle.
+function PlanetarySky({ clock }) {
+  const sunRef = useRef(), sg1 = useRef(), sg2 = useRef();
+  const moonRef = useRef(), mGlow = useRef();
+  useFrame(() => {
+    const h = hourFromClock(clock, Date.now());
+    const e = sunElevation(h);
+    const az = ((h - 6) / 12) * Math.PI;
+    const up = Math.max(0, e);
+    const digOk = ENV.digital < 0.5;
+
+    // ── sun: a bright core + two soft additive halos (fakes bloom) ──
+    const sunVis = e > -0.06 && digOk;
+    const sx = Math.cos(az) * 90, sy = Math.max(e, -0.06) * 82 + 5, sz = 34;
+    [sunRef, sg1, sg2].forEach((r) => { if (r.current) { r.current.visible = sunVis; r.current.position.set(sx, sy, sz); } });
+    if (sunRef.current) sunRef.current.material.opacity = sunVis ? 1 : 0;
+    if (sg1.current) { const s = 16 + (1 - up) * 12; sg1.current.scale.set(s, s, s); sg1.current.material.opacity = 0.45 + up * 0.45; }
+    if (sg2.current) { const s = 30 + (1 - up) * 18; sg2.current.scale.set(s, s, s); sg2.current.material.opacity = 0.2 + up * 0.18; }
+
+    // ── moon: phase disc + soft halo, opposite the sun ──
+    const mh = h + 12, me = sunElevation(mh), maz = ((mh - 6) / 12) * Math.PI;
+    const illum = moonIllum(moonPhase(Date.now()));
+    const moonVis = ENV.night > 0.03 && digOk;
+    const mx = Math.cos(maz) * 72, my = Math.max(me, -0.12) * 54 + 14, mz = 26;
+    if (moonRef.current) { moonRef.current.visible = moonVis; moonRef.current.position.set(mx, my, mz); moonRef.current.material.opacity = Math.min(1, ENV.night * 1.5); }
+    if (mGlow.current) { mGlow.current.visible = moonVis; mGlow.current.position.set(mx, my, mz); mGlow.current.material.opacity = ENV.night * (0.1 + illum * 0.32); const s = 11 + illum * 5; mGlow.current.scale.set(s, s, s); }
+  });
+  return (
+    <>
+      <sprite ref={sg2}><spriteMaterial map={SUN_TEX} color="#ffcf8a" transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} /></sprite>
+      <sprite ref={sg1}><spriteMaterial map={SUN_TEX} color="#fff0c8" transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} /></sprite>
+      <sprite ref={sunRef} scale={[7, 7, 7]}><spriteMaterial map={SUN_TEX} color="#fffaf0" transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} /></sprite>
+      <sprite ref={mGlow}><spriteMaterial map={GLOW_TEX} color="#cfe0ff" transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} /></sprite>
+      <sprite ref={moonRef} scale={[8, 8, 8]}><spriteMaterial map={MOON_TEX} transparent opacity={0} depthWrite={false} /></sprite>
+    </>
+  );
+}
+
+/* ============================================ TWO WORLDS — digital layer */
+// The master controller: ramps the shared ENV.digital transition (0=physical
+// world … 1=digital world), darkens the sky toward a cyber void, and fills the
+// air with drifting data particles. Lights/ground/crops elsewhere read ENV.digital.
+const DIGI_DARK = new THREE.Color('#06070f');   // cyber-void sky in the digital layer
+const DIGI_LAYERS = [
+  ['comms',      '📡', 'Comms',      '#22e0ff'],
+  ['water',      '🌊', 'Water',      '#38bdf8'],
+  ['ai',         '🧠', 'AI Brain',   '#a855f7'],
+  ['climate',    '🌫', 'Climate',    '#5eead4'],
+  ['energy',     '⚡', 'Energy',     '#ffd54a'],
+  ['prediction', '🔮', 'Prediction', '#f472b6'],
+  ['biology',    '🌱', 'Biology',    '#84cc16'],
+];
+
+function DigitalController({ active }) {
+  const sparkRef = useRef();
+  useFrame((_, dt) => {
+    ENV.digital = THREE.MathUtils.lerp(ENV.digital, active ? 1 : 0, Math.min(1, dt * 1.6));
+    if (sparkRef.current) sparkRef.current.visible = ENV.digital > 0.05;
+  });
+  return (
+    <group ref={sparkRef} visible={false}>
+      <Sparkles count={140} scale={[130, 34, 130]} position={[0, 13, 0]} size={3} speed={0.3} opacity={0.5} color="#5fd0ff" noise={2} />
+    </group>
+  );
+}
+
+// LAYER · AI BRAIN — a neural web over the farm with a pulsing core + data pulses.
+function AiNeural({ scene }) {
+  const positions = useTwinStore((s) => s.positions);
+  const { nodeIds, gwIds, links } = scene;
+  const brainRef = useRef();
+  const ringRefs = useRef([]);
+  const pulseRefs = useRef([]);
+  const AI = '#a855f7';
+  const center = useMemo(() => {
+    let x = 0, z = 0, n = 0;
+    [...nodeIds, ...gwIds].forEach((id) => { const p = positions[id]; if (p) { x += p[0]; z += p[2]; n++; } });
+    return n ? [x / n, 6, z / n] : [0, 6, 0];
+  }, [positions, nodeIds, gwIds]);
+  const edges = useMemo(() => {
+    const gwSet = new Set(gwIds), e = [];
+    links.forEach((l) => {
+      const a = positions[l.fromKey], b = positions[l.toKey];
+      if (a && b) e.push({ a: [a[0], gwSet.has(l.fromKey) ? 2.2 : 1.66, a[2]], b: [b[0], gwSet.has(l.toKey) ? 2.2 : 1.66, b[2]] });
+    });
+    gwIds.forEach((id) => { const p = positions[id]; if (p) e.push({ a: center, b: [p[0], 2.25, p[2]], brain: true }); });
+    return e;
+  }, [positions, links, gwIds, center]);
+  useFrame((_, dt) => {
+    const t = performance.now() * 0.001, vis = ENV.digital > 0.05, d = ENV.digital;
+    if (brainRef.current) {
+      brainRef.current.visible = vis;
+      const s = 1 + Math.sin(t * 2) * 0.12;
+      brainRef.current.scale.set(s, s, s);
+      brainRef.current.rotation.y += dt * 0.4;
+      brainRef.current.material.emissiveIntensity = (0.6 + Math.sin(t * 3) * 0.3) * d;
+    }
+    ringRefs.current.forEach((m, i) => { if (!m) return; const p = ((t * 0.3) + i / 3) % 1; const r = 1 + p * 8; m.scale.set(r, r, r); m.material.opacity = (1 - p) * 0.4 * d; });
+    pulseRefs.current.forEach((m, i) => {
+      const e = edges[i]; if (!m || !e) { if (m) m.visible = false; return; }
+      m.visible = vis;
+      const tt = ((t * 0.4) + i * 0.13) % 1;
+      m.position.set(e.a[0] + (e.b[0] - e.a[0]) * tt, e.a[1] + (e.b[1] - e.a[1]) * tt, e.a[2] + (e.b[2] - e.a[2]) * tt);
+      m.material.opacity = Math.sin(tt * Math.PI) * 0.9 * d;
+    });
+  });
+  return (
+    <group>
+      {edges.map((e, i) => <Line key={i} points={[e.a, e.b]} color={e.brain ? '#c084fc' : AI} lineWidth={e.brain ? 1.6 : 1.1} transparent opacity={0.35} depthWrite={false} />)}
+      {edges.map((e, i) => (
+        <sprite key={`p${i}`} ref={(el) => (pulseRefs.current[i] = el)} scale={[0.5, 0.5, 0.5]}>
+          <spriteMaterial map={GLOW_TEX} color={AI} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </sprite>
+      ))}
+      <mesh ref={brainRef} position={center} visible={false}>
+        <icosahedronGeometry args={[0.9, 1]} />
+        <meshStandardMaterial color={AI} emissive={AI} emissiveIntensity={0.7} wireframe transparent opacity={0.85} />
+      </mesh>
+      {[0, 1, 2].map((i) => (
+        <mesh key={i} ref={(el) => (ringRefs.current[i] = el)} position={center} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.92, 1, 48]} />
+          <meshBasicMaterial color={AI} transparent opacity={0} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </mesh>
+      ))}
+      <Html position={[center[0], center[1] + 1.5, center[2]]} center distanceFactor={16} className="pointer-events-none select-none">
+        <div className="px-2 py-0.5 rounded-md bg-purple-950/80 text-purple-200 text-[10px] font-semibold whitespace-nowrap ring-1 ring-purple-400/40">🧠 AI · analysing drought risk</div>
+      </Html>
+    </group>
+  );
+}
+
+// LAYER · BIOLOGY — glowing root systems below each plant (seen through ground).
+function RootSystem({ pos }) {
+  const branches = useMemo(() => {
+    const out = [], main = [];
+    for (let i = 0; i < 6; i++) main.push([(Math.random() * 2 - 1) * 0.1 * i, -i * 0.28, (Math.random() * 2 - 1) * 0.1 * i]);
+    out.push(main);
+    for (let b = 0; b < 4; b++) {
+      const start = 1 + Math.floor(Math.random() * 3), br = [main[start]];
+      for (let i = 1; i < 4; i++) { const prev = br[i - 1]; br.push([prev[0] + (Math.random() * 2 - 1) * 0.35, prev[1] - 0.3, prev[2] + (Math.random() * 2 - 1) * 0.35]); }
+      out.push(br);
+    }
+    return out;
+  }, []);
+  return (
+    <group position={[pos[0], 0.1, pos[2]]}>
+      {branches.map((b, i) => <Line key={i} points={b} color="#9bd64a" lineWidth={i === 0 ? 2 : 1.1} transparent opacity={0.7} depthWrite={false} />)}
+    </group>
+  );
+}
+function Roots({ scene }) {
+  const positions = useTwinStore((s) => s.positions);
+  const grpRef = useRef();
+  useFrame(() => { if (grpRef.current) grpRef.current.visible = ENV.digital > 0.1; });
+  return (
+    <group ref={grpRef} visible={false}>
+      {scene.nodeIds.map((id) => { const p = positions[id]; return p ? <RootSystem key={id} pos={p} /> : null; })}
+    </group>
+  );
+}
+
+// LAYER · PREDICTION — translucent "+48h" ghost crop + drought-risk ring per plot.
+function PredictionGhosts({ scene }) {
+  const positions = useTwinStore((s) => s.positions);
+  const byId = useTwinStore((s) => s.byId);
+  const grpRef = useRef();
+  const refs = useRef([]);
+  useFrame(() => {
+    const t = performance.now() * 0.001;
+    if (grpRef.current) grpRef.current.visible = ENV.digital > 0.1;
+    refs.current.forEach((m, i) => { if (m) m.material.opacity = (0.22 + 0.12 * Math.sin(t * 2 + i)) * ENV.digital; });
+  });
+  return (
+    <group ref={grpRef} visible={false}>
+      {scene.nodeIds.map((id, i) => {
+        const p = positions[id]; if (!p) return null;
+        const d = byId[id] || {};
+        const soil = Number(d.soil ?? d.soil_moisture_pct);
+        const risk = Number.isFinite(soil) ? Math.max(0, Math.min(1, (40 - soil) / 40)) : 0.3;
+        const col = risk > 0.5 ? '#f87171' : '#f472b6';
+        return (
+          <group key={id} position={[p[0], 0, p[2]]}>
+            <mesh ref={(el) => (refs.current[i] = el)} position={[0, 1.4, 0]}>
+              <coneGeometry args={[0.5, 1.8, 8]} />
+              <meshBasicMaterial color={col} transparent opacity={0.25} depthWrite={false} />
+            </mesh>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.3, 0]}>
+              <ringGeometry args={[1.3, 1.5, 40]} />
+              <meshBasicMaterial color={col} transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} />
+            </mesh>
+            <Html position={[0, 2.7, 0]} center distanceFactor={15} className="pointer-events-none select-none">
+              <div className="px-1.5 py-0.5 rounded bg-pink-950/80 text-pink-200 text-[9px] font-semibold whitespace-nowrap ring-1 ring-pink-400/40">+48H · {risk > 0.5 ? 'drought risk' : 'stable'}</div>
+            </Html>
+          </group>
+        );
+      })}
+    </group>
   );
 }
 
@@ -1495,6 +1922,8 @@ function SkyAndSun({ clock }) {
 function Scene({ scene, editMode, onSelect, onCommit, clock, cinematic }) {
   const { nodeIds, gwIds, links, gwColor } = scene;
   const selectedId  = useTwinStore((s) => s.selectedId);
+  const digital      = useTwinStore((s) => s.digital);
+  const digitalLayer = useTwinStore((s) => s.digitalLayer);
   const setPosition = useTwinStore((s) => s.setPosition);
   const setDragging = useTwinStore((s) => s.setDragging);
   const feat        = useTwinStore((s) => s.features);
@@ -1545,13 +1974,19 @@ function Scene({ scene, editMode, onSelect, onCommit, clock, cinematic }) {
     <>
       <color attach="background" args={['#dfeaf2']} />
       <SkyAndSun clock={clock} />
-      {feat.weather && <WeatherSystem />}
+      <PlanetarySky clock={clock} />
+      <DigitalController active={digital} />
+      {feat.weather && (!digital || digitalLayer === 'climate') && <WeatherSystem />}
 
-      <Ground />
+      {feat.ground && <Ground />}
       <Grid position={[0, 0.01, 0]} infiniteGrid cellSize={1} sectionSize={5} fadeDistance={95} fadeStrength={1.6} cellColor="#bcc6b2" sectionColor="#9aa888" />
 
-      {feat.pipes && <PipeNetwork scene={scene} />}
-      {feat.signal && <SignalSpectrum scene={scene} />}
+      {(feat.pipes || (digital && digitalLayer === 'water')) && <PipeNetwork scene={scene} />}
+      {digital && digitalLayer === 'comms' && <SignalSpectrum scene={scene} />}
+      {digital && digitalLayer === 'ai'         && <AiNeural scene={scene} />}
+      {digital && digitalLayer === 'biology'    && <Roots scene={scene} />}
+      {digital && digitalLayer === 'prediction' && <PredictionGhosts scene={scene} />}
+      {digital && digitalLayer === 'energy' && <EnergyTags scene={scene} />}
 
       <CinematicDirector controlsRef={controlsRef} scene={scene} cinematic={cinematic} editMode={editMode} />
 
@@ -1588,6 +2023,16 @@ function fmtAge(ts) {
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   return `${Math.floor(s / 3600)}h ago`;
 }
+// minutes → "3d 11h" / "2h 15m" / "45m"
+function fmtMin(m) {
+  if (m == null || m <= 0) return null;
+  const d = Math.floor(m / 1440);
+  const h = Math.floor((m % 1440) / 60);
+  const mm = Math.round(m % 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${mm}m`;
+  return `${mm}m`;
+}
 
 function Metric({ icon, label, value, accent }) {
   return (
@@ -1600,10 +2045,48 @@ function Metric({ icon, label, value, accent }) {
   );
 }
 
+// Tiny inline SVG trend line for the detail panel.
+function Sparkline({ data, color, w = 70, h = 22 }) {
+  const vals = (data || []).filter((v) => v != null && !Number.isNaN(v));
+  if (vals.length < 2) return <div className="h-[22px] flex items-center text-[9px] text-slate-300">—</div>;
+  const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - (((v == null ? min : v) - min) / span) * (h - 3) - 1.5;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return (
+    <svg width={w} height={h} className="block">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function DetailPanel({ canControl, onValve, onClose }) {
   const sel = useTwinStore((s) => (s.selectedId ? s.byId[s.selectedId] : null));
   const [asking, setAsking] = useState(false);
   const [pct, setPct] = useState(100);
+  const [hist, setHist] = useState(null);
+  const [cached, setCached] = useState(false);
+  const nodeId = sel?._id;
+  useEffect(() => {
+    if (!nodeId) { setHist(null); setCached(false); return; }
+    let cancelled = false;
+    const key = `twin_hist_${nodeId}`;
+    // show the last saved 24h immediately (survives a lost connection)
+    try { const c = localStorage.getItem(key); if (c && !cancelled) { setHist(JSON.parse(c).history || []); setCached(true); } } catch { /* ignore */ }
+    api.get(`/nodes/${nodeId}/history`)
+      .then((r) => {
+        if (cancelled) return;
+        const h = r.data?.data?.history || [];
+        if (h.length) {
+          setHist(h); setCached(false);
+          try { localStorage.setItem(key, JSON.stringify({ history: h, ts: Date.now() })); } catch { /* quota */ }
+        }
+      })
+      .catch(() => { /* keep the cached trend */ });
+    return () => { cancelled = true; };
+  }, [nodeId]);
   if (!sel) return null;
   const status    = sel.status || 'unknown';
   const valveOpen = (sel.valve ?? sel.valve_state) === 'open';
@@ -1614,6 +2097,10 @@ function DetailPanel({ canControl, onValve, onClose }) {
     ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
     : status === 'offline' ? 'bg-rose-50 text-rose-700 ring-rose-200' : 'bg-slate-100 text-slate-500 ring-slate-200';
   const v = (x, suffix = '') => (x === null || x === undefined || x === '' ? '—' : `${x}${suffix}`);
+  const charging = sel.charging ?? sel.battery_charging;
+  const batV = sel.bat_v ?? sel.battery_v;
+  const batMa = sel.bat_ma ?? sel.battery_ma;
+  const timeTxt = fmtMin(sel.time_min ?? sel.battery_time_min);
 
   return (
     <div className="absolute bottom-4 right-4 z-10 w-72 rounded-2xl bg-white/85 backdrop-blur-xl shadow-2xl ring-1 ring-black/5 overflow-hidden animate-[fadeIn_.18s_ease-out]">
@@ -1638,8 +2125,39 @@ function DetailPanel({ canControl, onValve, onClose }) {
         <Metric icon="💧" label="Soil" value={v(sel.soil ?? sel.soil_moisture_pct, '%')} accent="text-sky-700" />
         <Metric icon="🌡" label="Temp" value={v(sel.temp, ' °C')} accent="text-orange-600" />
         <Metric icon="💦" label="Humidity" value={v(sel.hum, '%')} accent="text-cyan-700" />
-        <Metric icon="🔋" label="Battery" value={v(sel.bat ?? sel.battery_pct, '%')} accent="text-emerald-700" />
+        <Metric icon={charging ? '⚡' : '🔋'} label={charging ? 'Charging' : 'Battery'}
+          value={`${v(sel.bat ?? sel.battery_pct, '%')}${batV != null ? ` · ${batV}V` : ''}`}
+          accent={charging ? 'text-amber-600' : 'text-emerald-700'} />
       </div>
+
+      {/* battery detail: current + time remaining */}
+      {(batMa != null || timeTxt) && (
+        <div className="px-3 -mt-1 pb-2 flex items-center justify-between text-[11px]">
+          <span className="text-slate-400 tabular-nums">{batMa != null ? `${Math.round(batMa)} mA` : ''}</span>
+          {timeTxt && (
+            <span className={`font-semibold ${charging ? 'text-amber-600' : 'text-emerald-600'}`}>
+              {charging ? `⚡ ${timeTxt} to full` : `🔋 ${timeTxt} left`}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* 24h trend sparklines */}
+      {hist && hist.length > 1 && (
+        <div className="px-3 pb-2">
+          <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-1 flex items-center gap-1.5">
+            Last 24h trend {cached && <span className="text-[8px] text-amber-500 normal-case tracking-normal">· cached (offline)</span>}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[['Soil', 'avg_soil_moisture', '#0ea5e9'], ['Temp', 'avg_temperature', '#f97316'], ['Batt', 'avg_battery', '#10b981']].map(([label, key, col]) => (
+              <div key={key} className="rounded-xl bg-slate-50/80 border border-slate-100 px-2 py-1.5">
+                <div className="text-[9px] text-slate-400 mb-0.5">{label}</div>
+                <Sparkline data={hist.map((b) => b[key])} color={col} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* status row */}
       <div className="px-3 pb-3 grid grid-cols-3 gap-2 text-center">
@@ -1732,6 +2250,7 @@ function CustomizePanel({ deviceId, onSave, onClose }) {
   const color = cust.color || null;
   const label = cust.label || '';
   const crop  = cust.crop || 'grass';
+  const [cropSearch, setCropSearch] = useState('');
 
   const queueSave = useCallback(() => {
     clearTimeout(tRef.current);
@@ -1759,19 +2278,30 @@ function CustomizePanel({ deviceId, onSave, onClose }) {
           className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mb-4 bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-300"
         />
 
-        {/* crop type — the plant rendered on the plot */}
-        <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1.5">Crop type</label>
-        <div className="grid grid-cols-3 gap-1.5 mb-4">
-          {CROP_KEYS.map((k) => (
-            <button
-              key={k}
-              onClick={() => update({ crop: k })}
-              className={`text-[11px] font-semibold py-1.5 rounded-lg border transition-colors ${
-                crop === k ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
-            >
-              {CROP_TYPES[k].name}
-            </button>
-          ))}
+        {/* crop type — searchable visual picker (pick the plant by its picture) */}
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Crop type</label>
+          <span className="text-[10px] text-emerald-600 font-semibold">{CROP_TYPES[crop]?.icon} {CROP_TYPES[crop]?.name}</span>
+        </div>
+        <input
+          value={cropSearch} onChange={(e) => setCropSearch(e.target.value)} placeholder="🔍 Search crops (e.g. tomato, trees, grains)…"
+          className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs mb-2 bg-white/70 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-300"
+        />
+        <div className="grid grid-cols-4 gap-1.5 mb-4 max-h-44 overflow-auto pr-0.5">
+          {CROP_KEYS.filter((k) => {
+            const c = CROP_TYPES[k], q = cropSearch.trim().toLowerCase();
+            return !q || c.name.toLowerCase().includes(q) || c.cat.toLowerCase().includes(q);
+          }).map((k) => {
+            const c = CROP_TYPES[k];
+            return (
+              <button key={k} onClick={() => update({ crop: k })} title={`${c.name} · ${c.cat}`}
+                className={`flex flex-col items-center gap-0.5 py-1.5 rounded-lg border transition-all ${
+                  crop === k ? 'bg-emerald-500 text-white border-emerald-500 shadow' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-emerald-200'}`}>
+                <span className="text-lg leading-none">{c.icon}</span>
+                <span className="text-[8px] font-semibold leading-tight text-center truncate w-full px-0.5">{c.name}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* size */}
@@ -1826,7 +2356,7 @@ function CustomizePanel({ deviceId, onSave, onClose }) {
 function AlertsPanel({ alerts, onJump }) {
   if (!alerts.length) return null;
   return (
-    <div className="absolute top-3 right-3 z-10 w-60 rounded-2xl bg-white/85 backdrop-blur-xl shadow-2xl ring-1 ring-black/5 overflow-hidden max-h-[44vh] flex flex-col">
+    <div className="absolute top-16 right-3 z-10 w-60 rounded-2xl bg-white/85 backdrop-blur-xl shadow-2xl ring-1 ring-black/5 overflow-hidden max-h-[44vh] flex flex-col">
       <div className="px-3.5 py-2.5 flex items-center gap-2 bg-gradient-to-r from-rose-50 to-white border-b border-rose-100">
         <span className="text-rose-500">⚠</span>
         <span className="font-semibold text-rose-700 text-sm">Alerts</span>
@@ -1982,31 +2512,48 @@ function WeatherDemoPanel({ farmId, onClose }) {
   );
 }
 
-/* ------------------------------------------------ HUD: signal spectrum */
-// Telecom-style readout shown in Signal Spectrum mode: LoRa band + per-node
-// link quality (RSSI) bars (cyan = strong, magenta = weak / interference).
+/* ------------------------------------------------ HUD: LoRa health */
+// Packet loss from gaps in the telemetry seq window (distinct seqs / span).
+function packetLoss(seqs) {
+  if (!seqs || seqs.length < 4) return null;
+  const min = seqs[0], max = seqs[seqs.length - 1];
+  const span = max - min + 1;
+  if (span <= 0) return 0;
+  return Math.max(0, Math.min(1, 1 - new Set(seqs).size / span));
+}
+// Telecom-style readout: LoRa band + per-node link quality (RSSI bar), live
+// packet-loss %, and weak-link warnings (low RSSI or high loss).
 function SpectrumPanel({ nodeIds }) {
   const byId = useTwinStore((s) => s.byId);
+  const linkStats = useTwinStore((s) => s.linkStats);
   return (
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 w-64 rounded-2xl bg-slate-900/85 backdrop-blur-xl shadow-2xl ring-1 ring-cyan-400/30 p-3">
+    <div className="absolute top-1/2 right-3 -translate-y-1/2 z-10 w-72 rounded-2xl bg-slate-900/85 backdrop-blur-xl shadow-2xl ring-1 ring-cyan-400/30 p-3">
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-cyan-300 font-bold text-xs tracking-[0.15em]">📡 SIGNAL SPECTRUM</span>
+        <span className="text-cyan-300 font-bold text-xs tracking-[0.15em]">📡 LoRa HEALTH</span>
         <span className="text-[10px] font-mono text-cyan-400/70">433.0 MHz</span>
       </div>
-      <div className="text-[9px] font-mono text-slate-400 mb-2">SF7 · BW125 · CR4/5 · sync 0x12</div>
-      <div className="space-y-1.5 max-h-44 overflow-auto">
+      <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 mb-2">
+        <span>SF7 · BW125 · CR4/5</span><span>RSSI · LOSS</span>
+      </div>
+      <div className="space-y-1.5 max-h-56 overflow-auto">
         {nodeIds.length === 0 && <div className="text-[10px] text-slate-500">No nodes on this farm</div>}
         {nodeIds.map((id) => {
           const d = byId[id] || {};
           const rssi = d.rssi ?? d.lora_rssi;
           const q = rssiQuality(rssi);
+          const loss = packetLoss(linkStats[id]?.seqs);
+          const weak = (rssi != null && rssi < -95) || (loss != null && loss > 0.15);
           return (
             <div key={id} className="flex items-center gap-2">
-              <span className="text-[10px] text-slate-300 truncate w-20">{d.name || id}</span>
+              <span className="text-[10px] text-slate-300 truncate w-16" title={d.name || id}>{d.name || id}</span>
+              {weak && <span className="text-[9px]" title="weak link">⚠️</span>}
               <div className="flex-1 h-1.5 rounded-full bg-slate-700/60 overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: `${Math.round(q * 100)}%`, background: q > 0.5 ? '#22e0ff' : '#ff2d7e' }} />
               </div>
-              <span className="text-[9px] font-mono text-slate-400 w-12 text-right">{rssi == null ? '—' : `${Math.round(rssi)}dBm`}</span>
+              <span className="text-[9px] font-mono text-slate-400 w-10 text-right">{rssi == null ? '—' : `${Math.round(rssi)}`}</span>
+              <span className={`text-[9px] font-mono w-9 text-right ${loss != null && loss > 0.15 ? 'text-rose-400' : 'text-slate-400'}`}>
+                {loss == null ? '—' : `${Math.round(loss * 100)}%`}
+              </span>
             </div>
           );
         })}
@@ -2015,14 +2562,65 @@ function SpectrumPanel({ nodeIds }) {
   );
 }
 
+/* ------------------------------------------------ HUD: energy grid */
+// Full INA219 readout per node + farm power total — shown in the Energy layer.
+function EnergyHUD({ nodeIds }) {
+  const byId = useTwinStore((s) => s.byId);
+  let totalW = 0;
+  const rows = nodeIds.map((id) => {
+    const d = byId[id] || {};
+    const v = d.bat_v ?? d.battery_v;
+    const ma = d.bat_ma ?? d.battery_ma;
+    const pct = d.bat ?? d.battery_pct;
+    const charging = d.charging ?? d.battery_charging;
+    const w = (v != null && ma != null) ? Math.abs(v * ma) / 1000 : null;   // V·A → W
+    if (w != null) totalW += w;
+    return { id, name: d.name || id, v, ma, pct, charging, w, time: fmtMin(d.time_min) };
+  });
+  return (
+    <div className="absolute top-1/2 right-3 -translate-y-1/2 z-10 w-72 rounded-2xl bg-slate-900/85 backdrop-blur-xl shadow-2xl ring-1 ring-amber-400/30 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-amber-300 font-bold text-xs tracking-[0.15em]">⚡ ENERGY GRID</span>
+        <span className="text-[10px] font-mono text-amber-400/80">{totalW.toFixed(2)} W total</span>
+      </div>
+      <div className="space-y-2 max-h-72 overflow-auto">
+        {rows.length === 0 && <div className="text-[10px] text-slate-500">No nodes on this farm</div>}
+        {rows.map((r) => (
+          <div key={r.id} className="rounded-lg bg-white/5 p-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] text-slate-200 font-semibold truncate">{r.name}</span>
+              <span className={`text-[9px] font-bold ${r.charging ? 'text-emerald-400' : 'text-amber-300'}`}>{r.charging ? '⚡ charging' : '🔋 discharging'}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-slate-700/60 overflow-hidden">
+              <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(0, Math.min(100, r.pct ?? 0))}%`, background: r.charging ? '#34d399' : (r.pct > 30 ? '#fbbf24' : '#f87171') }} />
+            </div>
+            <div className="flex justify-between mt-1 text-[9px] font-mono text-slate-400">
+              <span>{r.pct != null ? `${Math.round(r.pct)}%` : '—'}</span>
+              <span>{r.v != null ? `${r.v.toFixed(2)}V` : '—'}</span>
+              <span>{r.ma != null ? `${Math.round(r.ma)}mA` : '—'}</span>
+              <span className="text-amber-300/80">{r.w != null ? `${r.w.toFixed(2)}W` : '—'}</span>
+            </div>
+            {r.time && (
+              <div className={`text-[9px] mt-0.5 text-right ${r.charging ? 'text-emerald-400' : 'text-amber-300'}`}>
+                {r.charging ? `⚡ ${r.time} to full` : `🔋 ${r.time} left`}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="text-[9px] text-slate-500 mt-2">Live INA219 · voltage · current · power · charge state</div>
+    </div>
+  );
+}
+
 /* ------------------------------------------------ HUD: feature settings */
 const FEATURE_LIST = [
   ['weather', '🌦️ Weather & sky'],
+  ['ground',  '🟫 Ground'],
   ['crops',   '🌱 Crops'],
   ['pipes',   '🚰 Pipes & flow'],
   ['energy',  '⚡ Solar / energy'],
   ['labels',  '🏷️ Labels'],
-  ['signal',  '📡 Signal spectrum'],
 ];
 // Gear panel: show/hide every 3D feature on the page.
 function SettingsPanel({ onClose }) {
@@ -2050,6 +2648,267 @@ function SettingsPanel({ onClose }) {
       <div className="flex gap-1.5 mt-2.5">
         <button onClick={() => allOn(true)}  className="flex-1 text-[11px] font-semibold py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">Show all</button>
         <button onClick={() => allOn(false)} className="flex-1 text-[11px] font-semibold py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">Hide all</button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------ HUD: planetary pulse */
+// Live moon phase + season + sunrise — the farm's planetary synchronisation.
+function PlanetaryPanel() {
+  const weather = useTwinStore((s) => s.weather);
+  const [, tick] = useState(0);
+  useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 60000); return () => clearInterval(t); }, []);
+  const now = new Date();
+  const mi = moonIndex(moonPhase(now.getTime()));
+  const seas = SEASONS[seasonOf(now, weather?.lat)];
+  const rise = weather?.sunrise ? new Date(weather.sunrise).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+  return (
+    <div className="absolute top-3 right-3 z-10 rounded-2xl bg-slate-900/70 backdrop-blur-xl ring-1 ring-white/10 px-3 py-1.5 text-white shadow-xl flex items-center gap-3">
+      <div className="flex flex-col items-center" title={`Moon · ${MOON_NAMES[mi]}`}>
+        <span className="text-lg leading-none">{MOON_ICONS[mi]}</span>
+        <span className="text-[8px] text-white/55 mt-0.5 whitespace-nowrap">{MOON_NAMES[mi]}</span>
+      </div>
+      <div className="w-px h-7 bg-white/15" />
+      <div className="flex flex-col items-center" title="Season">
+        <span className="text-base leading-none">{seas.icon}</span>
+        <span className="text-[8px] text-white/55 mt-0.5">{seas.name}</span>
+      </div>
+      <div className="w-px h-7 bg-white/15" />
+      <div className="flex flex-col items-center" title="Local sunrise">
+        <span className="text-base leading-none">🌅</span>
+        <span className="text-[8px] text-white/55 mt-0.5 tabular-nums">{rise}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------ HUD: OTA manager */
+// Lists every device + its firmware version and lets you push an OTA build.
+// Uses the existing endpoints: GET /ota/firmware, POST /ota/deploy(-gateway)/:id.
+function OtaPanel({ scene, meta, onClose, toast }) {
+  const byId = useTwinStore((s) => s.byId);
+  const [fw, setFw] = useState([]);
+  const [pick, setPick] = useState({});
+  const [busy, setBusy] = useState(null);
+  useEffect(() => {
+    api.get('/ota/firmware').then((r) => setFw(r.data?.data?.firmware || [])).catch(() => setFw([]));
+  }, []);
+  const devices = [
+    ...scene.gwIds.map((id) => ({ id, type: 'gateway' })),
+    ...scene.nodeIds.map((id) => ({ id, type: 'node' })),
+  ];
+  const deploy = (dev) => {
+    const m = meta[dev.id];
+    const firmware_id = pick[dev.id] || fw[0]?._id;
+    if (!m || !firmware_id) return;
+    setBusy(dev.id);
+    const url = dev.type === 'gateway' ? `/ota/deploy-gateway/${m._id}` : `/ota/deploy/${m._id}`;
+    api.post(url, { firmware_id })
+      .then(() => toast(`OTA sent to ${byId[dev.id]?.name || dev.id}`))
+      .catch((e) => toast(`OTA failed: ${e.response?.data?.message || e.message}`, 3000))
+      .finally(() => setBusy(null));
+  };
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-[30rem] max-w-[92%] max-h-[82vh] overflow-auto rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <span className="font-semibold text-slate-800 flex items-center gap-1.5">⬆ OTA firmware manager</span>
+          <button onClick={onClose} className="text-slate-300 hover:text-slate-600 text-xl leading-none">×</button>
+        </div>
+        {fw.length === 0 && <div className="text-xs text-amber-600 bg-amber-50 rounded-lg px-2.5 py-1.5 mb-2">No firmware uploaded yet — upload one via <span className="font-mono">POST /api/ota/upload</span>.</div>}
+        <div className="space-y-1.5">
+          {devices.map((dev) => {
+            const d = byId[dev.id] || {};
+            const cur = d.firmware_version || d.fw || '—';
+            return (
+              <div key={dev.id} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50/70 px-2.5 py-2">
+                <span className="text-base">{dev.type === 'gateway' ? '📡' : '🌱'}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold text-slate-700 truncate">{d.name || dev.id}</div>
+                  <div className="text-[10px] text-slate-400">running fw {cur}</div>
+                </div>
+                <select value={pick[dev.id] || ''} onChange={(e) => setPick((s) => ({ ...s, [dev.id]: e.target.value }))}
+                  className="text-[11px] border border-slate-200 rounded-lg px-1.5 py-1 bg-white max-w-[7rem]">
+                  <option value="">latest…</option>
+                  {fw.map((f) => <option key={f._id} value={f._id}>v{f.version}</option>)}
+                </select>
+                <button disabled={busy === dev.id || fw.length === 0} onClick={() => deploy(dev)}
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-sky-500 text-white hover:bg-sky-600 disabled:opacity-40">
+                  {busy === dev.id ? '…' : 'Deploy'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-slate-400 mt-3 leading-relaxed">Deploy publishes the OTA command over MQTT; the gateway flashes itself via WiFi, or streams the binary to a node over LoRa.</p>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------ HUD: schedules */
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Weekly irrigation schedule editor: per-zone/node watering windows + a 7-day
+// preview. Backed by /farms/:id/schedules; a backend cron fires them.
+function SchedulePanel({ farmId, scene, meta, onClose, toast }) {
+  const byId = useTwinStore((s) => s.byId);
+  const blank = { name: 'Watering', target: 'farm', node: '', zone: '', days: [1, 3, 5], startTime: '06:00', durationMin: 15, valvePercent: 100 };
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState(blank);
+  const nodes = scene.nodeIds.map((id) => ({ id, _id: meta[id]?._id, name: byId[id]?.name || id }));
+  const zones = Array.from(new Set(scene.nodeIds.map((id) => byId[id]?.zone).filter(Boolean)));
+
+  const load = () => {
+    setLoading(true);
+    api.get(`/farms/${farmId}/schedules`).then((r) => setList(r.data?.data?.schedules || [])).catch(() => setList([])).finally(() => setLoading(false));
+  };
+  useEffect(load, [farmId]);
+
+  const toggleDay = (d) => setForm((f) => ({ ...f, days: f.days.includes(d) ? f.days.filter((x) => x !== d) : [...f.days, d].sort() }));
+  const add = () => {
+    if (!form.days.length) { toast('Pick at least one day', 2500); return; }
+    if (form.target === 'node' && !form.node) { toast('Pick a node', 2500); return; }
+    if (form.target === 'zone' && !form.zone) { toast('Pick a zone', 2500); return; }
+    const body = {
+      name: form.name, days: form.days, startTime: form.startTime,
+      durationMin: +form.durationMin, valvePercent: +form.valvePercent,
+      node: form.target === 'node' ? form.node : null,
+      zone: form.target === 'zone' ? form.zone : null,
+    };
+    api.post(`/farms/${farmId}/schedules`, body)
+      .then(() => { setForm(blank); load(); toast('Schedule added'); })
+      .catch((e) => toast(`Failed: ${e.response?.data?.message || e.message}`, 3000));
+  };
+  const del = (id) => api.delete(`/schedules/${id}`).then(load).catch(() => {});
+  const toggle = (s) => api.patch(`/schedules/${s._id}`, { enabled: !s.enabled }).then(load).catch(() => {});
+  const tLabel = (s) => (s.node ? `Node ${s.node.device_id || s.node.name || ''}` : s.zone ? `Zone ${s.zone}` : 'Whole farm');
+
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-[34rem] max-w-[95%] max-h-[88vh] overflow-auto rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <span className="font-semibold text-slate-800 flex items-center gap-1.5">🗓 Irrigation schedules</span>
+          <button onClick={onClose} className="text-slate-300 hover:text-slate-600 text-xl leading-none">×</button>
+        </div>
+
+        {/* weekly preview */}
+        <div className="grid grid-cols-7 gap-1 mb-3">
+          {DOW.map((d, i) => (
+            <div key={i} className="rounded-lg bg-slate-50 border border-slate-100 p-1 min-h-[46px]">
+              <div className="text-[9px] text-center text-slate-400 mb-0.5">{d}</div>
+              {list.filter((s) => s.enabled && s.days.includes(i)).map((s) => (
+                <div key={s._id} className="text-[8px] rounded bg-sky-500/15 text-sky-700 px-1 py-0.5 mb-0.5 truncate text-center" title={`${s.name} · ${s.startTime} · ${s.durationMin}m`}>{s.startTime}</div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* existing schedules */}
+        {loading ? <div className="text-xs text-slate-400 mb-2">Loading…</div>
+          : list.length === 0 ? <div className="text-xs text-slate-400 mb-2">No schedules yet — add one below.</div>
+            : (
+              <div className="space-y-1.5 mb-3">
+                {list.map((s) => (
+                  <div key={s._id} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50/70 px-2.5 py-2">
+                    <button onClick={() => toggle(s)} className={`relative w-9 h-5 rounded-full shrink-0 ${s.enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                      <span className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow" style={{ left: s.enabled ? 18 : 2 }} />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-slate-700 truncate">{s.name} · {s.startTime} · {s.durationMin}m · {s.valvePercent}%</div>
+                      <div className="text-[10px] text-slate-400 truncate">{tLabel(s)} · {s.days.map((d) => DOW[d]).join(' ')}</div>
+                    </div>
+                    <button onClick={() => del(s._id)} title="Delete" className="text-slate-300 hover:text-rose-500 text-sm shrink-0">🗑</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+        {/* add form */}
+        <div className="rounded-xl border border-slate-200 p-3 space-y-2.5">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">New schedule</div>
+          <div className="flex gap-2">
+            <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Name"
+              className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-sm" />
+            <select value={form.target} onChange={(e) => setForm((f) => ({ ...f, target: e.target.value }))}
+              className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm bg-white">
+              <option value="farm">Whole farm</option>
+              <option value="zone" disabled={zones.length === 0}>Zone</option>
+              <option value="node">Node</option>
+            </select>
+            {form.target === 'zone' && (
+              <select value={form.zone} onChange={(e) => setForm((f) => ({ ...f, zone: e.target.value }))} className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm bg-white">
+                <option value="">zone…</option>{zones.map((z) => <option key={z} value={z}>{z}</option>)}
+              </select>
+            )}
+            {form.target === 'node' && (
+              <select value={form.node} onChange={(e) => setForm((f) => ({ ...f, node: e.target.value }))} className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm bg-white max-w-[8rem]">
+                <option value="">node…</option>{nodes.map((n) => <option key={n.id} value={n._id}>{n.name}</option>)}
+              </select>
+            )}
+          </div>
+          <div className="flex gap-1">
+            {DOW.map((d, i) => (
+              <button key={i} onClick={() => toggleDay(i)}
+                className={`flex-1 text-[11px] font-semibold py-1 rounded-lg border ${form.days.includes(i) ? 'bg-sky-500 text-white border-sky-500' : 'bg-white text-slate-500 border-slate-200'}`}>{d[0]}</button>
+            ))}
+          </div>
+          <div className="flex gap-2 items-center">
+            <label className="text-[11px] text-slate-500">Start <input type="time" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} className="border border-slate-200 rounded-lg px-2 py-1 text-sm ml-1" /></label>
+            <label className="text-[11px] text-slate-500">Min <input type="number" min={1} max={1440} value={form.durationMin} onChange={(e) => setForm((f) => ({ ...f, durationMin: e.target.value }))} className="w-16 border border-slate-200 rounded-lg px-2 py-1 text-sm ml-1" /></label>
+            <label className="text-[11px] text-slate-500">% <input type="number" min={1} max={100} value={form.valvePercent} onChange={(e) => setForm((f) => ({ ...f, valvePercent: e.target.value }))} className="w-16 border border-slate-200 rounded-lg px-2 py-1 text-sm ml-1" /></label>
+          </div>
+          <button onClick={add} className="w-full text-sm font-semibold py-2 rounded-xl bg-sky-500 text-white hover:bg-sky-600">+ Add schedule</button>
+        </div>
+        <p className="text-[10px] text-slate-400 mt-2">A backend cron opens the valve(s) at the start time on the chosen days and closes them after the duration (server local time).</p>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------ HUD: digital layer rail */
+// Vertical "dimension selector" shown in the digital world — pick which hidden
+// system to reveal. (DIGI_LAYERS is defined later but resolved at render time.)
+function DigitalLayerBar() {
+  const digital  = useTwinStore((s) => s.digital);
+  const layer    = useTwinStore((s) => s.digitalLayer);
+  const setLayer = useTwinStore((s) => s.setDigitalLayer);
+  if (!digital) return null;
+  return (
+    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 rounded-2xl bg-slate-950/80 backdrop-blur-xl ring-1 ring-cyan-400/25 px-2 py-1.5 shadow-2xl">
+      {DIGI_LAYERS.map(([k, icon, label, color]) => (
+        <button key={k} onClick={() => setLayer(k)} title={label}
+          className="flex flex-col items-center w-14 px-1 py-1.5 rounded-lg transition-all"
+          style={{ background: layer === k ? color + '22' : 'transparent', boxShadow: layer === k ? `0 0 14px ${color}55` : 'none' }}>
+          <span className="text-lg leading-none" style={{ filter: layer === k ? 'none' : 'grayscale(0.55) opacity(0.7)' }}>{icon}</span>
+          <span className="text-[9px] font-semibold mt-0.5" style={{ color: layer === k ? color : '#94a3b8' }}>{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Cinematic dimensional-shift flash + title when crossing between worlds.
+function DigitalOverlay({ digital }) {
+  const [show, setShow] = useState(false);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }   // skip initial mount
+    setShow(true);
+    const t = setTimeout(() => setShow(false), 1400);
+    return () => clearTimeout(t);
+  }, [digital]);
+  if (!show) return null;
+  return (
+    <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center" style={{ animation: 'digiFlash 1.4s ease-out forwards' }}>
+      <div className="text-center" style={{ animation: 'digiText 1.4s ease-out forwards' }}>
+        <div className="text-2xl font-bold tracking-[0.3em]" style={{ color: digital ? '#5fd0ff' : '#86efac' }}>
+          {digital ? 'ENTERING DIGITAL LAYER' : 'RETURNING TO REALITY'}
+        </div>
+        <div className="text-xs tracking-[0.25em] mt-1.5 text-white/55">
+          {digital ? 'the invisible becomes visible' : 'the physical farm'}
+        </div>
       </div>
     </div>
   );
@@ -2100,6 +2959,78 @@ function TimeControl({ clock, setClock }) {
   );
 }
 
+/* ------------------------------------------------ header: tool button */
+// Compact square icon button used across the header toolbars. One accent colour
+// when active; otherwise a quiet ghost button — keeps the header monochrome.
+const TB_ON = {
+  emerald: 'bg-emerald-500 text-white ring-emerald-400/60',
+  sky:     'bg-sky-500 text-white ring-sky-400/60',
+  cyan:    'bg-cyan-400 text-cyan-950 ring-cyan-300/60',
+  fuchsia: 'bg-fuchsia-500 text-white ring-fuchsia-400/60',
+  amber:   'bg-amber-400 text-amber-950 ring-amber-300/60',
+};
+function ToolButton({ active, onClick, title, accent = 'emerald', children }) {
+  return (
+    <button onClick={onClick} title={title}
+      className={`grid place-items-center h-9 w-9 rounded-lg text-[15px] transition-all active:scale-90 ring-1 ${
+        active ? `${TB_ON[accent]} shadow` : 'text-slate-300 ring-transparent hover:bg-white/10 hover:text-white'}`}>
+      {children}
+    </button>
+  );
+}
+
+/* ------------------------------------------------ header: alerts bell */
+// Notification bell with a live count; opens a dropdown of active alerts.
+// Clicking an alert flies the camera to that device and selects it.
+function AlertsBell({ alerts, onJump }) {
+  const [open, setOpen] = useState(false);
+  const n = alerts.length;
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen((v) => !v)} title="Alerts"
+        className={`relative grid place-items-center h-9 w-9 rounded-lg ring-1 transition-all active:scale-90 ${
+          n ? 'text-rose-200 ring-rose-400/40 hover:bg-rose-500/20' : 'text-slate-300 ring-transparent hover:bg-white/10'}`}>
+        <span className="text-[15px]">🔔</span>
+        {n > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 grid place-items-center rounded-full bg-rose-500 text-white text-[9px] font-bold ring-2 ring-slate-900">{n}</span>
+        )}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 mt-2 w-64 z-30 rounded-xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden animate-[fadeIn_.15s_ease-out]">
+            <div className="px-3 py-2 bg-rose-50 border-b border-rose-100 flex items-center justify-between">
+              <span className="text-xs font-semibold text-rose-700">⚠ Alerts</span>
+              <span className="text-[10px] text-rose-500">{n} active</span>
+            </div>
+            {n === 0 ? (
+              <div className="px-3 py-4 text-center text-xs text-slate-400">All systems healthy ✓</div>
+            ) : (
+              <ul className="max-h-72 overflow-auto py-1">
+                {alerts.map((a) => (
+                  <li key={a.key}>
+                    <button onClick={() => { onJump(a.key); setOpen(false); }}
+                      className="w-full text-left px-3 py-2 hover:bg-rose-50 transition-colors group">
+                      <div className="font-medium text-slate-800 text-sm truncate flex items-center gap-1">
+                        <span className="text-rose-400 group-hover:translate-x-0.5 transition-transform">→</span>{a.name}
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1 pl-4">
+                        {a.alerts.map((x) => (
+                          <span key={x.kind} className="px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-700 text-[10px] font-medium">{x.label}</span>
+                        ))}
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* -------------------------------------------------------------------- page */
 export default function FarmTwinPage() {
   const [farms, setFarms]     = useState([]);
@@ -2115,6 +3046,12 @@ export default function FarmTwinPage() {
   const [cinematic, setCinematic] = useState(false);  // auto fly-over / orbit mode
   const [wxDemo, setWxDemo] = useState(false);         // weather demo panel open?
   const [showSettings, setShowSettings] = useState(false);
+  const [showOta, setShowOta] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const digital        = useTwinStore((s) => s.digital);
+  const setDigital     = useTwinStore((s) => s.setDigital);
+  const digitalLayer   = useTwinStore((s) => s.digitalLayer);
+  const setDigitalLayer = useTwinStore((s) => s.setDigitalLayer);
   const [isFs, setIsFs] = useState(false);             // fullscreen active?
   const pageRef = useRef(null);
   const features      = useTwinStore((s) => s.features);
@@ -2337,104 +3274,86 @@ export default function FarmTwinPage() {
 
   return (
     <div ref={pageRef} className={`space-y-5 ${isFs ? 'bg-gradient-to-b from-slate-100 to-slate-200 p-4 overflow-auto h-screen' : ''}`}>
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`}</style>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+        @keyframes digiFlash{0%{background:rgba(5,7,18,0.85)}100%{background:rgba(5,7,18,0)}}
+        @keyframes digiText{0%{opacity:0;transform:scale(.9)}22%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0}}`}</style>
 
       {/* ---------------------------------------------------------- header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 px-5 py-4 shadow-lg">
-        <div className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="absolute -left-10 -bottom-12 h-40 w-40 rounded-full bg-emerald-300/20 blur-2xl" />
-        <div className="relative flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <div className="grid place-items-center h-11 w-11 rounded-xl bg-white/15 backdrop-blur ring-1 ring-white/25 text-2xl shadow-inner">🌾</div>
-            <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">3D Digital Twin</h1>
-              <p className="text-sm text-emerald-50/90">Field plots relay in a chain back to their gateway. Click any plot to zoom in &amp; control it.</p>
+      <header className="relative overflow-hidden rounded-2xl bg-slate-900 ring-1 ring-white/10 shadow-xl">
+        {/* thin accent line */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent" />
+        <div className="px-4 py-3 flex items-center gap-3 flex-wrap">
+          {/* identity */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="grid place-items-center h-10 w-10 rounded-xl bg-emerald-500/15 ring-1 ring-emerald-400/30 text-xl shrink-0">🌾</div>
+            <div className="min-w-0">
+              <h1 className="text-[15px] font-bold text-white tracking-tight leading-none">3D Digital Twin</h1>
+              <p className="text-[11px] text-slate-400 mt-1 truncate">Field plots relay in a chain back to their gateway · click any plot to control it</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <select
-                value={farmId || ''}
-                onChange={(e) => { setFarmId(e.target.value); select(null); setEditMode(false); }}
-                className="appearance-none cursor-pointer rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur ring-1 ring-white/25 text-white text-sm font-medium pl-3 pr-8 py-2 transition-colors focus:outline-none [&>option]:text-slate-800"
-              >
-                {farms.length === 0 && <option value="">No farms</option>}
-                {farms.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
-              </select>
-              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-white/80 text-xs">▾</span>
-            </div>
-            <button
-              onClick={() => setWxDemo((v) => !v)}
-              className={`text-sm font-semibold px-3.5 py-2 rounded-xl ring-1 transition-all active:scale-95 ${
-                wxDemo ? 'bg-sky-500 text-white ring-sky-300 shadow-lg shadow-sky-900/30' : 'bg-white/15 hover:bg-white/25 text-white ring-white/25 backdrop-blur'}`}
+          {/* farm selector */}
+          <div className="relative">
+            <select
+              value={farmId || ''}
+              onChange={(e) => { setFarmId(e.target.value); select(null); setEditMode(false); }}
+              className="appearance-none cursor-pointer rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 text-white text-sm font-medium pl-3 pr-8 py-2 transition-colors focus:outline-none [&>option]:text-slate-800"
             >
-              🌦️ Weather
-            </button>
-            <button
-              onClick={() => toggleFeature('signal')}
-              className={`text-sm font-semibold px-3.5 py-2 rounded-xl ring-1 transition-all active:scale-95 ${
-                features.signal ? 'bg-cyan-400 text-cyan-950 ring-cyan-300 shadow-lg shadow-cyan-900/30' : 'bg-white/15 hover:bg-white/25 text-white ring-white/25 backdrop-blur'}`}
-            >
-              📡 Signal
-            </button>
-            <button
-              onClick={() => setShowSettings((v) => !v)}
-              title="Show / hide scene features"
-              className={`text-sm font-semibold px-3 py-2 rounded-xl ring-1 transition-all active:scale-95 ${
-                showSettings ? 'bg-white text-slate-700 ring-white' : 'bg-white/15 hover:bg-white/25 text-white ring-white/25 backdrop-blur'}`}
-            >
-              ⚙
-            </button>
-            <button
-              onClick={toggleFullscreen}
-              title={isFs ? 'Exit fullscreen' : 'Fullscreen'}
-              className="text-sm font-semibold px-3 py-2 rounded-xl ring-1 transition-all active:scale-95 bg-white/15 hover:bg-white/25 text-white ring-white/25 backdrop-blur"
-            >
-              {isFs ? '🡼 Exit' : '⛶'}
-            </button>
-            <button
-              onClick={() => { setCinematic((v) => !v); select(null); if (!cinematic) setEditMode(false); }}
-              className={`text-sm font-semibold px-3.5 py-2 rounded-xl ring-1 transition-all active:scale-95 ${
-                cinematic ? 'bg-fuchsia-500 text-white ring-fuchsia-300 shadow-lg shadow-fuchsia-900/30' : 'bg-white/15 hover:bg-white/25 text-white ring-white/25 backdrop-blur'}`}
-            >
-              {cinematic ? '🎬 Stop' : '🎬 Cinematic'}
-            </button>
-            <button
-              onClick={() => { setEditMode(!editMode); select(null); setCinematic(false); }}
-              className={`text-sm font-semibold px-3.5 py-2 rounded-xl ring-1 transition-all active:scale-95 ${
-                editMode ? 'bg-amber-400 text-amber-950 ring-amber-300 shadow-lg shadow-amber-900/20' : 'bg-white/15 hover:bg-white/25 text-white ring-white/25 backdrop-blur'}`}
-            >
-              {editMode ? '✓ Done editing' : '✎ Edit layout'}
-            </button>
-            {editMode && (
-              <button onClick={resetLayout} className="text-sm font-semibold px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white ring-1 ring-white/25 backdrop-blur transition-all active:scale-95">
-                ↺ Reset
-              </button>
-            )}
-            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl ring-1 backdrop-blur ${
-              live ? 'bg-emerald-400/20 text-white ring-emerald-200/40' : 'bg-white/10 text-white/70 ring-white/20'}`}>
-              <span className={`w-2 h-2 rounded-full ${live ? 'bg-emerald-300 animate-pulse shadow-[0_0_8px] shadow-emerald-300' : 'bg-white/50'}`} />
-              {live ? 'Live' : 'Offline'}
-            </span>
+              {farms.length === 0 && <option value="">No farms</option>}
+              {farms.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
+            </select>
+            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-white/60 text-xs">▾</span>
+          </div>
+
+          <div className="flex-1" />
+
+          {/* live status + alerts bell */}
+          <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg ring-1 ${
+            live ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30' : 'bg-white/5 text-slate-400 ring-white/10'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${live ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+            {live ? 'Live' : 'Offline'}
+          </span>
+          <AlertsBell alerts={alerts} onJump={(k) => { setCinematic(false); select(k); }} />
+
+          {/* primary action */}
+          <button
+            onClick={() => setDigital(!digital)}
+            className={`text-sm font-semibold px-3 py-2 rounded-lg ring-1 transition-all active:scale-95 ${
+              digital ? 'bg-cyan-400 text-cyan-950 ring-cyan-300' : 'bg-white/5 text-white ring-white/15 hover:bg-white/10'}`}
+          >
+            {digital ? '🌍 Reality' : '🌌 Digital layer'}
+          </button>
+
+          {/* scene toolbars (grouped, monochrome with single accent when active) */}
+          <div className="flex items-center gap-1 rounded-xl bg-white/5 ring-1 ring-white/10 p-1">
+            <ToolButton active={wxDemo} accent="sky" onClick={() => setWxDemo((v) => !v)} title="Weather">🌦️</ToolButton>
+            <ToolButton active={digital && digitalLayer === 'comms'} accent="cyan" onClick={() => (digital && digitalLayer === 'comms') ? setDigital(false) : setDigitalLayer('comms')} title="Signal spectrum (Comms layer)">📡</ToolButton>
+            <ToolButton active={cinematic} accent="fuchsia" onClick={() => { setCinematic((v) => !v); select(null); if (!cinematic) setEditMode(false); }} title="Cinematic">🎬</ToolButton>
+          </div>
+          <div className="flex items-center gap-1 rounded-xl bg-white/5 ring-1 ring-white/10 p-1">
+            <ToolButton onClick={() => setShowSchedule(true)} title="Irrigation schedules">🗓</ToolButton>
+            <ToolButton onClick={() => setShowOta(true)} title="OTA firmware manager">⬆</ToolButton>
+            <ToolButton active={showSettings} onClick={() => setShowSettings((v) => !v)} title="Scene features">⚙️</ToolButton>
+            <ToolButton onClick={toggleFullscreen} title={isFs ? 'Exit fullscreen' : 'Fullscreen'}>{isFs ? '🡼' : '⛶'}</ToolButton>
+          </div>
+          <div className="flex items-center gap-1 rounded-xl bg-white/5 ring-1 ring-white/10 p-1">
+            <ToolButton active={editMode} accent="amber" onClick={() => { setEditMode(!editMode); select(null); setCinematic(false); }} title={editMode ? 'Done editing' : 'Edit layout'}>✎</ToolButton>
+            {editMode && <ToolButton onClick={resetLayout} title="Reset layout">↺</ToolButton>}
           </div>
         </div>
 
-        {/* mini stats strip */}
+        {/* stats strip */}
         {hasDevices && (
-          <div className="relative mt-3.5 flex flex-wrap gap-2 text-[11px] font-medium">
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/12 backdrop-blur px-2.5 py-1 text-white ring-1 ring-white/15">
-              <span className="text-emerald-200">●</span> {onlineCount}/{scene.nodeIds.length} nodes online
+          <div className="px-4 pb-2.5 -mt-0.5 flex flex-wrap gap-2 text-[11px] font-medium">
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1 text-slate-300 ring-1 ring-white/10">
+              <span className={onlineCount === scene.nodeIds.length ? 'text-emerald-400' : 'text-amber-400'}>●</span>
+              {onlineCount}/{scene.nodeIds.length} nodes online
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/12 backdrop-blur px-2.5 py-1 text-white ring-1 ring-white/15">
-              📡 {scene.gwIds.length} gateway{scene.gwIds.length === 1 ? '' : 's'}
-            </span>
-            <span className={`inline-flex items-center gap-1.5 rounded-lg backdrop-blur px-2.5 py-1 ring-1 ${alerts.length ? 'bg-rose-400/25 text-white ring-rose-200/40' : 'bg-white/12 text-white ring-white/15'}`}>
-              ⚠ {alerts.length} alert{alerts.length === 1 ? '' : 's'}
-            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1 text-slate-300 ring-1 ring-white/10">📡 {scene.gwIds.length} gateway{scene.gwIds.length === 1 ? '' : 's'}</span>
+            {editMode && <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400/15 px-2.5 py-1 text-amber-300 ring-1 ring-amber-400/25">✎ Edit mode · drag plots, click to customize</span>}
           </div>
         )}
-      </div>
+      </header>
 
       {/* ------------------------------------------------------ 3D viewport */}
       <div className={`relative ${isFs ? 'h-[88vh]' : 'h-[76vh]'} min-h-[520px] rounded-2xl overflow-hidden ring-1 ring-black/10 shadow-2xl bg-gradient-to-b from-[#e7eff6] to-[#dbe6ef]`}>
@@ -2453,19 +3372,15 @@ export default function FarmTwinPage() {
           </div>
         )}
 
-        <Canvas shadows dpr={[1, 2]} camera={{ position: [24, 20, 26], fov: 42 }} onPointerMissed={() => select(null)}>
+        <Canvas
+          shadows={{ type: THREE.PCFSoftShadowMap }}
+          dpr={[1, 2]}
+          gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.06 }}
+          camera={{ position: [24, 20, 26], fov: 42, near: 0.5, far: 2000 }}
+          onPointerMissed={() => select(null)}
+        >
           <Scene scene={scene} editMode={editMode} onSelect={select} onCommit={commitTwin} clock={clock} cinematic={cinematic} />
         </Canvas>
-
-        {/* legend */}
-        <div className="absolute top-3 left-3 z-10 rounded-2xl bg-white/85 backdrop-blur-xl shadow-xl ring-1 ring-black/5 px-3.5 py-3 text-[11px] space-y-1.5">
-          <div className="font-semibold text-slate-700 mb-1.5 text-[10px] uppercase tracking-wider">Legend</div>
-          <div className="flex items-center gap-2 text-slate-600"><span className="w-3 h-3 rounded" style={{ background: '#22c55e' }} /> Online plot</div>
-          <div className="flex items-center gap-2 text-slate-600"><span className="w-3 h-3 rounded" style={{ background: '#ef4444' }} /> Offline plot</div>
-          <div className="flex items-center gap-2 text-slate-600"><span className="w-3 h-3 rounded-full" style={{ background: '#38bdf8' }} /> Watering</div>
-          <div className="flex items-center gap-2 text-slate-600"><span className="w-3 h-3 rounded-full ring-2 ring-rose-500" /> Alert</div>
-          <div className="pt-1.5 mt-1 border-t border-slate-200/70 text-slate-400">Dashed = relay chain · posts = gateway</div>
-        </div>
 
         {/* edit-mode hint */}
         {editMode && (
@@ -2478,12 +3393,17 @@ export default function FarmTwinPage() {
           <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-slate-900/90 text-white text-xs font-medium px-3.5 py-2 rounded-xl shadow-xl backdrop-blur animate-[fadeIn_.18s_ease-out]">{saveMsg}</div>
         )}
 
-        {!editMode && <AlertsPanel alerts={alerts} onJump={select} />}
+        {!editMode && <PlanetaryPanel />}
 
         <TimeControl clock={clock} setClock={setClock} />
         {features.weather && <WeatherPanel />}
-        {features.signal && <SpectrumPanel nodeIds={scene.nodeIds} />}
+        {digital && digitalLayer === 'comms' && <SpectrumPanel nodeIds={scene.nodeIds} />}
+        {digital && digitalLayer === 'energy' && <EnergyHUD nodeIds={scene.nodeIds} />}
         {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+        {showOta && <OtaPanel scene={scene} meta={metaRef.current} onClose={() => setShowOta(false)} toast={toast} />}
+        {showSchedule && farmId && <SchedulePanel farmId={farmId} scene={scene} meta={metaRef.current} onClose={() => setShowSchedule(false)} toast={toast} />}
+        <DigitalLayerBar />
+        <DigitalOverlay digital={digital} />
         {wxDemo && <WeatherDemoPanel farmId={farmId} onClose={() => setWxDemo(false)} />}
 
         {showCustomize && <CustomizePanel deviceId={selectedId} onSave={commitTwin} onClose={() => select(null)} />}

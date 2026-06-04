@@ -41,6 +41,7 @@ app.use('/api/ota',          require('./routes/ota.routes'));
 // Sensor & irrigation (nested under nodes, mounted at /api)
 app.use('/api',              require('./routes/sensor.routes'));
 app.use('/api',              require('./routes/irrigation.routes'));
+app.use('/api',              require('./routes/schedule.routes'));
 
 // Top-level feature routes
 app.use('/api/alerts',       require('./routes/alert.routes'));

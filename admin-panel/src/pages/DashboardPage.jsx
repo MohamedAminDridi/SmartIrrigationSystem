@@ -139,7 +139,10 @@ function NodeMiniCard({ node, live, farmId }) {
   const d      = live || {};
   const soil   = d.soil_moisture_pct ?? null;
   const temp   = d.temperature_c ?? null;
+  const bat    = d.battery_pct ?? node.battery_pct;
+  const charging = d.charging ?? d.battery_charging ?? node.battery_charging;
   const online = node.status === 'online';
+  const batColor = bat == null ? 'text-gray-400' : bat > 60 ? 'text-green-600' : bat > 30 ? 'text-yellow-500' : 'text-red-500';
 
   return (
     <Link to={`/farms/${farmId}`}
@@ -167,12 +170,15 @@ function NodeMiniCard({ node, live, farmId }) {
                style={{ width: `${soil ?? 0}%` }}/>
         </div>
       </div>
-      {/* Temp */}
-      {temp != null && (
-        <p className={`text-xs text-center font-bold ${
-          temp > 35 ? 'text-red-500' : temp > 28 ? 'text-orange-500' : 'text-gray-500'
-        }`}>🌡️ {temp.toFixed(1)}°C</p>
-      )}
+      {/* Temp + Battery */}
+      <div className="flex items-center justify-between">
+        {temp != null ? (
+          <p className={`text-xs font-bold ${temp > 35 ? 'text-red-500' : temp > 28 ? 'text-orange-500' : 'text-gray-500'}`}>🌡️ {temp.toFixed(1)}°C</p>
+        ) : <span />}
+        <p className={`text-xs font-bold ${charging ? 'text-amber-500' : batColor}`}>
+          {charging ? '⚡' : '🔋'} {bat != null ? `${bat}%` : '—'}
+        </p>
+      </div>
     </Link>
   );
 }

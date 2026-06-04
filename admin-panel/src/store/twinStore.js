@@ -18,8 +18,16 @@ export const useTwinStore = create((set) => ({
   // Deeply-nested components (crops/energy inside nodes) read these directly.
   features: {
     weather: true, crops: true, pipes: true, energy: true,
-    labels: true, signal: false,   // signal = Electromagnetic / Signal Spectrum mode
+    labels: true, ground: true, signal: false,   // signal = Electromagnetic / Signal Spectrum mode
   },
+  // "Two Worlds": digital = the invisible intelligence layer is revealed.
+  // digitalLayer selects which hidden system: comms | water | ai | climate |
+  // energy | prediction | biology.
+  digital: false,
+  digitalLayer: 'comms',
+  // LoRa link health: per-device rolling window of telemetry seq numbers,
+  // used to derive packet-loss % (gaps in seq) for the network diagnostic.
+  linkStats: {},     // { [device_id]: { seqs: number[] } }
   live: false,       // socket connected?
   editMode: false,   // layout-edit (drag) mode on?
   dragging: false,   // a marker is currently being dragged
@@ -70,6 +78,18 @@ export const useTwinStore = create((set) => ({
   setWeatherLocked: (v) => set({ weatherLocked: v }),
   setFeature:    (k, v) => set((s) => ({ features: { ...s.features, [k]: v } })),
   toggleFeature: (k)    => set((s) => ({ features: { ...s.features, [k]: !s.features[k] } })),
+  setDigital:      (v)  => set({ digital: v }),
+  setDigitalLayer: (l)  => set({ digital: true, digitalLayer: l }),
+  // Record a telemetry packet's sequence number for link-quality stats.
+  recordPacket: (deviceId, seq) => set((s) => {
+    if (seq == null || !deviceId) return {};
+    const prev = s.linkStats[deviceId]?.seqs || [];
+    const last = prev.length ? prev[prev.length - 1] : null;
+    // a much smaller seq means the node rebooted (seq restarts at 0) → reset window
+    const base = last != null && seq < last - 5 ? [] : prev;
+    const seqs = [...base, seq].slice(-80);
+    return { linkStats: { ...s.linkStats, [deviceId]: { seqs } } };
+  }),
   select:      (deviceId) => set({ selectedId: deviceId }),
   setLive:     (v)        => set({ live: v }),
   setEditMode: (v)        => set({ editMode: v, dragging: false }),

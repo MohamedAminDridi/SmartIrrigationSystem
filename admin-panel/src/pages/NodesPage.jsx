@@ -81,6 +81,7 @@ function NodeCard({ node, live, onAction, cmdState }) {
   const temp   = d.temperature_c     ?? null;
   const hum    = d.humidity_pct      ?? null;
   const bat    = d.battery_pct       ?? node.battery_pct;
+  const charging = d.charging ?? d.battery_charging ?? node.battery_charging;
   const rssi   = d.rssi              ?? null;
   const ri     = rssiInfo(rssi);
   const sl     = soilText(soil);
@@ -154,8 +155,8 @@ function NodeCard({ node, live, onAction, cmdState }) {
             <p className="font-bold text-blue-600 mt-0.5">{hum != null ? `${Math.round(hum)}%` : '—'}</p>
           </div>
           <div className="bg-gray-50 rounded-xl p-2 text-center">
-            <p className="text-gray-400">Bat</p>
-            <p className={`font-bold mt-0.5 ${batColor(bat)}`}>{bat != null ? `${bat}%` : '—'}</p>
+            <p className="text-gray-400">{charging ? '⚡ Bat' : 'Bat'}</p>
+            <p className={`font-bold mt-0.5 ${charging ? 'text-amber-500' : batColor(bat)}`}>{bat != null ? `${bat}%` : '—'}</p>
           </div>
           <div className={`bg-gray-50 rounded-xl p-2 text-center ${ri.color}`}>
             <p className="text-gray-400">RSSI</p>
@@ -408,7 +409,7 @@ export default function NodesPage() {
       setLiveData(prev => ({ ...prev, [d.deviceId]: d }));
       setNodes(prev => prev.map(n =>
         n.device_id === d.deviceId
-          ? { ...n, status:'online', last_seen: new Date(), battery_pct: d.battery_pct } : n
+          ? { ...n, status:'online', last_seen: new Date(), battery_pct: d.battery_pct, battery_charging: d.battery_charging } : n
       ));
     });
     s.on('node:status', d => {

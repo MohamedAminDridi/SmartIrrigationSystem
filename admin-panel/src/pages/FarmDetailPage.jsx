@@ -166,6 +166,7 @@ function NodeCard({ node, live, onClick }) {
   const temp   = d.temperature_c     ?? null;
   const hum    = d.humidity_pct      ?? null;
   const bat    = d.battery_pct       ?? node.battery_pct;
+  const charging = d.charging ?? d.battery_charging ?? node.battery_charging;
   const rssi   = d.rssi              ?? null;
   const ri     = rssiInfo(rssi);
   const online = node.status === 'online';
@@ -232,8 +233,8 @@ function NodeCard({ node, live, onClick }) {
         </div>
         {/* Battery */}
         <div className="col-span-1 bg-gray-50 rounded-xl p-2 text-center">
-          <p className="text-xs text-gray-400">Bat</p>
-          <p className={`text-sm font-bold leading-tight mt-0.5 ${batColor(bat)}`}>
+          <p className="text-xs text-gray-400">{charging ? '⚡ Bat' : 'Bat'}</p>
+          <p className={`text-sm font-bold leading-tight mt-0.5 ${charging ? 'text-amber-500' : batColor(bat)}`}>
             {bat != null ? `${bat}%` : '—'}
           </p>
         </div>
@@ -316,6 +317,7 @@ function NodeDrawer({ node, live, onClose, onCommand }) {
   const temp   = d.temperature_c     ?? null;
   const hum    = d.humidity_pct      ?? null;
   const bat    = d.battery_pct       ?? node.battery_pct;
+  const charging = d.charging ?? d.battery_charging ?? node.battery_charging;
   const rssi   = d.rssi              ?? null;
   const ri     = rssiInfo(rssi);
   const sl     = soilLabel(soil);
@@ -431,11 +433,11 @@ function NodeDrawer({ node, live, onClose, onCommand }) {
                 bat < 30 ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200' :
                            'bg-gradient-to-br from-green-50 to-emerald-50 border-green-100'
               }`}>
-                <p className="text-xs text-gray-400 mb-1">{batIcon(bat)} Battery</p>
-                <p className={`text-2xl font-black ${batColor(bat)}`}>
+                <p className="text-xs text-gray-400 mb-1">{charging ? '⚡' : batIcon(bat)} Battery</p>
+                <p className={`text-2xl font-black ${charging ? 'text-amber-500' : batColor(bat)}`}>
                   {bat != null ? `${bat}%` : '—'}
                 </p>
-                <p className="text-xs text-gray-400">{bat < 30 ? 'Low!' : 'OK'}</p>
+                <p className="text-xs text-gray-400">{charging ? 'Charging' : bat < 30 ? 'Low!' : 'OK'}</p>
               </div>
 
               {/* RSSI */}
@@ -660,7 +662,7 @@ export default function FarmDetailPage() {
       setLiveData(prev => ({ ...prev, [d.deviceId]: d }));
       setNodes(prev => prev.map(n =>
         n.device_id === d.deviceId
-          ? { ...n, status: 'online', last_seen: new Date(), battery_pct: d.battery_pct }
+          ? { ...n, status: 'online', last_seen: new Date(), battery_pct: d.battery_pct, battery_charging: d.battery_charging }
           : n
       ));
       setSelected(prev => prev?.device_id === d.deviceId

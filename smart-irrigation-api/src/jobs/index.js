@@ -85,6 +85,49 @@ exports.startJobs = () => {
     }
   });
 
+  // ── Irrigation schedules: open/close valves at their window each minute ──
+  cron.schedule('* * * * *', async () => {
+    const Schedule = require('../models/Schedule.model');
+    const { publish }  = require('../mqtt/mqttClient');
+    const topics       = require('../utils/mqttTopics');
+    const { reconcileFarmPump } = require('../controllers/irrigation.controller');
+
+    const now  = new Date();
+    const day  = now.getDay();                       // 0=Sun … 6=Sat (server local time)
+    const mins = now.getHours() * 60 + now.getMinutes();
+    const schedules = await Schedule.find({ enabled: true, days: day });
+
+    for (const sch of schedules) {
+      const [sh, sm] = String(sch.startTime || '00:00').split(':').map(Number);
+      const start = sh * 60 + sm;
+      const end   = start + (sch.durationMin || 0);
+      const isStart = mins === start;
+      const isEnd   = mins === end;
+      if (!isStart && !isEnd) continue;
+
+      const nodes = sch.node ? await Node.find({ _id: sch.node })
+                  : sch.zone ? await Node.find({ farm: sch.farm, zone: sch.zone })
+                  :            await Node.find({ farm: sch.farm });
+      if (!nodes.length) continue;
+
+      for (const node of nodes) {
+        if (isStart) {
+          publish(topics.command(node.farm.toString(), node.device_id),
+            { id: node.device_id, type: 'valve_open', payload: { percent: sch.valvePercent || 100 }, ts: Date.now() });
+          node.valve_state = 'open'; node.valve_pct = sch.valvePercent || 100;
+        } else {
+          publish(topics.command(node.farm.toString(), node.device_id),
+            { id: node.device_id, type: 'valve_close', payload: {}, ts: Date.now() });
+          node.valve_state = 'closed'; node.valve_pct = 0;
+        }
+        await node.save();
+      }
+      try { await reconcileFarmPump(sch.farm); } catch (e) { logger.warn(`Schedule pump reconcile failed: ${e.message}`); }
+      if (isStart) { sch.lastRun = now; await sch.save().catch(() => {}); }
+      logger.info(`Schedule "${sch.name || sch._id}" ${isStart ? 'opened' : 'closed'} ${nodes.length} valve(s)`);
+    }
+  });
+
   // ── Live weather: fetch Open-Meteo per farm and broadcast over Socket.IO ──
   // Every 15 min (Open-Meteo updates ~hourly; 15 min keeps clients fresh while
   // staying well within the free rate limit). Plus one run ~5 s after boot.

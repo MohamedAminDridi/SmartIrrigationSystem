@@ -25,6 +25,12 @@ module.exports = async function handleTelemetry(farmId, nodeDeviceId, payload) {
     const hum  = payload.hum  ?? null;
     const bat  = payload.bat  ?? null;
     const rssi = payload.lora_rssi ?? payload.rssi ?? null;
+    // INA219 battery monitor fields
+    const charging = payload.charging ?? null;   // bool: is the battery charging?
+    const batV     = payload.bat_v   ?? null;     // bus voltage (V)
+    const batMa    = payload.bat_ma  ?? null;     // current (mA, + discharge / − charge)
+    const batMah   = payload.bat_mah ?? null;     // coulomb-counted charge remaining (mAh)
+    const timeMin  = payload.time_min ?? null;    // minutes to full (charging) / empty (discharging)
 
     // Valve / pump state — node sends both short (valve/pump) and long (valve_state/pump_state) forms
     const valveState = payload.valve_state ?? payload.valve ?? null;
@@ -36,6 +42,9 @@ module.exports = async function handleTelemetry(farmId, nodeDeviceId, payload) {
       status:      'online',
       last_seen:   new Date(),
       battery_pct: bat,
+      ...(charging != null ? { battery_charging: charging } : {}),
+      ...(batV     != null ? { battery_v: batV } : {}),
+      ...(batMa    != null ? { battery_ma: batMa } : {}),
       ...(valveState != null  ? { valve_state: valveState } : {}),
       ...(valvePct   != null  ? { valve_pct:   valvePct   } : {}),
       ...(pumpState  != null  ? { pump_state:  pumpState  } : {}),
@@ -69,6 +78,11 @@ module.exports = async function handleTelemetry(farmId, nodeDeviceId, payload) {
       temperature_c:     temp,
       humidity_pct:      hum,
       battery_pct:       bat,
+      battery_charging:  charging,
+      battery_v:         batV,
+      battery_ma:        batMa,
+      battery_mah:       batMah,
+      battery_time_min:  timeMin,
       rssi,
       seq: payload.seq ?? null,
       ts:  new Date(),

@@ -66,6 +66,9 @@ async function issueValve(req, res, type) {
   created(res, { command: cmd, pump }, `Command sent · pump ${pump.on ? 'running' : 'stopped'} (${pump.openValves} valve${pump.openValves === 1 ? '' : 's'} open)`);
 }
 
+// Exported so the schedule cron can reuse the shared-pump reconciler.
+exports.reconcileFarmPump = reconcileFarmPump;
+
 exports.openValve   = asyncHandler((req, res) => issueValve(req, res, 'valve_open'));
 exports.closeValve  = asyncHandler((req, res) => issueValve(req, res, 'valve_close'));
 exports.toggleValve = asyncHandler((req, res) => issueValve(req, res, 'valve_toggle'));

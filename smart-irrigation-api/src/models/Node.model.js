@@ -15,6 +15,9 @@ const nodeSchema = new mongoose.Schema({
   sensor_types:        [{ type: String }],
   report_interval_sec: { type: Number, default: 60, min: 30, max: 3600 },
   battery_pct:         { type: Number, default: null },
+  battery_charging:    { type: Boolean, default: false },  // INA219: charger detected
+  battery_v:           { type: Number, default: null },    // INA219 bus voltage (V)
+  battery_ma:          { type: Number, default: null },    // INA219 current (mA; − = charging)
   firmware_version:    { type: String, default: '0.0.0' },
   status:              { type: String, enum: ['online','offline','unknown'], default: 'unknown' },
   last_seen:           { type: Date, default: null },

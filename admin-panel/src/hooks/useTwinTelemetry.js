@@ -8,18 +8,24 @@ import { useTwinStore } from '../store/twinStore';
 export function useTwinTelemetry(farmId) {
   const apply = useTwinStore((s) => s.apply);
   const setWeather = useTwinStore((s) => s.setWeather);
+  const recordPacket = useTwinStore((s) => s.recordPacket);
 
   const handlers = useMemo(() => ({
     // Live weather broadcast (Open-Meteo → backend → Socket.IO → 3D scene).
     // Skip while a manual demo override is active so it isn't overwritten.
     'weather:update': (w) => { if (!useTwinStore.getState().weatherLocked) setWeather(w); },
-    'sensor:data': (d) => apply(d.deviceId, {
+    'sensor:data': (d) => { recordPacket(d.deviceId, d.seq); return apply(d.deviceId, {
       soil:   d.soil_moisture_pct,
       temp:   d.temperature_c,
       hum:    d.humidity_pct,
       bat:    d.battery_pct,
       rssi:   d.rssi,
       status: 'online',
+      ...(d.battery_charging != null ? { charging: d.battery_charging } : {}),
+      ...(d.battery_v != null ? { bat_v: d.battery_v } : {}),
+      ...(d.battery_ma != null ? { bat_ma: d.battery_ma } : {}),
+      ...(d.battery_mah != null ? { bat_mah: d.battery_mah } : {}),
+      ...(d.battery_time_min != null ? { time_min: d.battery_time_min } : {}),
       // Telemetry handler now co-emits valve/pump when present in the packet
       ...(d.valve_state != null || d.valve != null
         ? { valve: d.valve_state ?? d.valve, valve_pct: d.valve_pct ?? null }
@@ -27,7 +33,7 @@ export function useTwinTelemetry(farmId) {
       ...(d.pump_state != null || d.pump != null
         ? { pump: d.pump_state ?? d.pump }
         : {}),
-    }),
+    }); },
     'node:status': (d) => apply(d.device_id ?? d.deviceId, {
       status: d.status,
       valve:  d.valve ?? d.valve_state,
@@ -43,7 +49,7 @@ export function useTwinTelemetry(farmId) {
     }),
     connect:    () => useTwinStore.getState().setLive(true),
     disconnect: () => useTwinStore.getState().setLive(false),
-  }), [apply, setWeather]);
+  }), [apply, setWeather, recordPacket]);
 
   return useSocket(farmId, handlers);
 }
